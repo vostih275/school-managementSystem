@@ -28,11 +28,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     // Example endpoints, adjust as needed
     const [userCount, clubCount, bookCount, feeCount, eventCount] = await Promise.all([
-        fetchCount('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/users'),
-        fetchCount('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/clubs'),
-        fetchCount('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/library'),
-        fetchCount('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/fees'),
-        fetchCount('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/events'),
+        fetchCount((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/users'),
+        fetchCount((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/clubs'),
+        fetchCount((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/library'),
+        fetchCount((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/fees'),
+        fetchCount((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/events'),
     ]);
 
     // Users Chart

@@ -101,7 +101,7 @@ async function loadEventsWithFilters() {
     try {
         const filters = getEventsFilters();
         const queryString = buildEventsQueryString(filters);
-        const url = '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/events' + queryString;
+        const url = (window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/events' + queryString;
         
         const response = await fetch(url, { 
             headers: { 
@@ -182,7 +182,7 @@ async function loadEventsWithFilters() {
         
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/events', {
+            const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/events', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ async function loadEventsWithFilters() {
                 const date = formData.get('date');
                 const description = formData.get('description');
                 try {
-                    const res = await fetch(`(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/events/${eventId}`, {
+                    const res = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/events/${eventId}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -275,7 +275,7 @@ async function loadEventsWithFilters() {
             universalConfirmYes.onclick = async () => {
                 closeUniversalModal(universalConfirmModal);
                 try {
-                    const res = await fetch(`(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/events/${eventId}`, {
+                    const res = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/events/${eventId}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -309,7 +309,7 @@ async function loadEventsWithFilters() {
             
             for (const eventId of selectedEventIds) {
                 deletePromises.push(
-                    fetch(`(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/events/${eventId}`, {
+                    fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/events/${eventId}`, {
                         method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -336,7 +336,7 @@ async function loadEventsWithFilters() {
             
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/events/export', {
+                const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/events/export', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

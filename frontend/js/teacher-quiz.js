@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         console.log('Sending quiz data:', quizData);
         // Use the API_BASE_URL constant if available, otherwise default to port 5000
-        const API_BASE_URL = window.API_CONFIG?.API_BASE_URL || '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')';
+        const API_BASE_URL = window.API_CONFIG?.API_BASE_URL || "http://localhost:5000/api";
         const response = await fetch(`${API_BASE_URL}/api/quizzes/create`, {
             method: 'POST',
             mode: 'cors',

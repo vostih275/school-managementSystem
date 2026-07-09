@@ -123,7 +123,7 @@ class AttendanceDetails {
                 return;
             }
 
-            const baseUrl = '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')';
+            const baseUrl = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
             const response = await fetch(`${baseUrl}/api/attendance/${this.attendanceId}`, {
                 method: 'GET',
                 headers: {

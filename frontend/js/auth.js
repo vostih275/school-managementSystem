@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = loginForm.querySelector('#password').value;
 
             try {
-                const response = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/auth/login', {
+                const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/auth/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Fetching report cards for student:', studentId);
       
       // Fetch report cards from the API
-      const apiUrl = `(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/report-cards/student/${studentId}`;
+      const apiUrl = `(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/report-cards/student/${studentId}`;
       console.log('Fetching from URL:', apiUrl);
       
       const response = await fetch(apiUrl, {

@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function loadQuizzes() {
         // Initialize variables at the top of the function
-        const API_BASE_URL = window.API_CONFIG?.API_BASE_URL || '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')';
+        const API_BASE_URL = window.API_CONFIG?.API_BASE_URL || "http://localhost:5000/api";
         const token = localStorage.getItem('token');
         let userData = JSON.parse(localStorage.getItem('userData') || '{}');
         let userRole = userData.role || 'student';

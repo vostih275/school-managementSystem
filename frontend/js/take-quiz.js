@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = window.API_CONFIG?.API_BASE_URL || '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')';
+const API_BASE_URL = window.API_CONFIG?.API_BASE_URL || "http://localhost:5000/api";
 
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {

@@ -37,7 +37,7 @@ class StudentManagement {
             
             // If no data in localStorage, try to load from API if available
             try {
-                const apiUrl = window.API_CONFIG?.API_BASE_URL || '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api';
+                const apiUrl = window.API_CONFIG?.API_BASE_URL || (window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api';
                 const response = await fetch(`${apiUrl}/students`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);

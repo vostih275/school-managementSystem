@@ -328,7 +328,7 @@ async function loadFeesWithFilters() {
     console.log('feeTableBody exists:', !!feeTableBody);
     
     // Build URL with query parameters
-    let url = '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/fees';
+    let url = (window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/fees';
     const params = new URLSearchParams();
     
     if (search) params.append('search', search);
@@ -614,7 +614,7 @@ async function loadClassesForFilter() {
         feesClassFilter.appendChild(loadingOption);
         
         // Make API request
-        const response = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/classes', {
+        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/classes', {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Cache-Control': 'no-cache',
@@ -717,7 +717,7 @@ if (feesBulkDelete) {
             const token = localStorage.getItem('token');
             for (const feeId of selectedFeeIds) {
                 try {
-                    await fetch(`(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/fees/${feeId}`, {
+                    await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/fees/${feeId}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -734,7 +734,7 @@ if (feesBulkExport) {
     feesBulkExport.onclick = async function() {
         if (selectedFeeIds.size === 0) return;
         const token = localStorage.getItem('token');
-        let url = '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/fees';
+        let url = (window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/fees';
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         const fees = await res.json();
         const selected = fees.filter(f => selectedFeeIds.has(f._id));
@@ -835,7 +835,7 @@ async function loadClassesForFilter() {
         
         // Get classes from the server
         const token = localStorage.getItem('token');
-        const response = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/classes', {
+        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/classes', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -947,10 +947,10 @@ async function handleClassChange(event) {
         
         // Try different possible endpoints
         const endpoints = [
-            `(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/students/class/${classId}`,
-            `(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/class/${classId}/students`,
-            `(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/class/students?classId=${classId}`,
-            '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/students'
+            `(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/students/class/${classId}`,
+            `(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/class/${classId}/students`,
+            `(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/class/students?classId=${classId}`,
+            (window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/students'
         ];
         
         let response;
@@ -994,7 +994,7 @@ async function handleClassChange(event) {
         console.log('Students loaded:', students);
         
         // Filter students by class if we got all students
-        if (endpoints.includes('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/students')) {
+        if (endpoints.includes((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/students')) {
             students = students.filter(student => 
                 student.classId === classId || 
                 student.class?._id === classId ||
@@ -1191,7 +1191,7 @@ if (feeForm) {
                 return;
             }
             
-            const res = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/fees', {
+            const res = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/fees', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1257,7 +1257,7 @@ if (feeList) {
             const thirdInstallment = formData.get('thirdInstallment');
             const bal = formData.get('bal');
             try {
-                const res = await fetch(`(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/fees/${feeId}`, {
+                const res = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/fees/${feeId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1293,7 +1293,7 @@ if (feeList) {
         universalConfirmYes.onclick = async () => {
             closeUniversalModal(universalConfirmModal);
             try {
-                const res = await fetch(`(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/fees/${feeId}`, {
+                const res = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/fees/${feeId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

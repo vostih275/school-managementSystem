@@ -73,4 +73,3 @@ const authApi = {
         return fetchData(endpoint);
     }
 };
-

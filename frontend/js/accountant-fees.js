@@ -51,7 +51,7 @@ class AccountantFees {
             console.log('Attempting to delete fee with ID:', feeId);
             
             try {
-                const deleteUrl = `(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/fees/${feeId}`;
+                const deleteUrl = `(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/fees/${feeId}`;
                 console.log('Sending DELETE request to:', deleteUrl);
                 
                 const response = await fetch(deleteUrl, {
@@ -206,7 +206,7 @@ class AccountantFees {
             if (classFilter && classFilter !== 'All Classes') params.append('class', classFilter);
             
             // Make API request to get fees with populated student data
-            const apiUrl = `(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/fees?${params.toString()}`;
+            const apiUrl = `(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/fees?${params.toString()}`;
             console.log('Fetching fees from:', apiUrl);
             
             let response;
@@ -676,7 +676,7 @@ class AccountantFees {
                 
                 console.log('Sending payment data:', paymentData);
                 
-                const response = await fetch(`(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/fees/${feeId}/payments`, {
+                const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/fees/${feeId}/payments`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -971,7 +971,7 @@ class AccountantFees {
                 return null;
             }
 
-            const response = await fetch(`(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/fees/${feeId}`, {
+            const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/fees/${feeId}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
