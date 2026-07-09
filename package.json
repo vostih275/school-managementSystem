@@ -1,0 +1,25 @@
+{
+  "name": "school-management-system-main",
+  "version": "1.0.0",
+  "description": "A comprehensive school management system built with Node.js, Express, and MongoDB.",
+  "main": "check-fees.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://jackmacha914-hash@github.com/jackmacha914-hash/school-management-system.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jackmacha914-hash/school-management-system/issues"
+  },
+  "homepage": "https://github.com/jackmacha914-hash/school-management-system#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.2",
+    "mongoose": "^8.18.1"
+  }
+}

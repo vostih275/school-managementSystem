@@ -1,14 +1,25 @@
 const Grade = require('../models/Grade');
+const User = require('../models/User');
 
 // Add Grade
 exports.addGrade = async (req, res) => {
     try {
-        const { student, subject, score } = req.body;
+        const { student, subject, score, term, academicYear } = req.body;
 
+        const studentUser = await User.findById(student).select('name class profile.class');
+        if (!studentUser) {
+            return res.status(404).json({ msg: "Student not found" });
+        }
+
+        const currentYear = new Date().getFullYear();
         const grade = new Grade({
             student,
+            studentName: studentUser.name,
+            class: studentUser.class || studentUser.profile?.class || '',
             subject,
             score,
+            term: term || 'Term 1',
+            academicYear: academicYear || `${currentYear}-${currentYear + 1}`,
             teacher: req.user.id
         });
 
@@ -22,7 +33,7 @@ exports.addGrade = async (req, res) => {
 // Get Student Grades
 exports.getStudentGrades = async (req, res) => {
     try {
-        const grades = req.user.role === 'Student' 
+        const grades = req.user.role === 'student' 
             ? await Grade.find({ student: req.user.id }).populate('student', 'name')
             : await Grade.find().populate('student', 'name');
         

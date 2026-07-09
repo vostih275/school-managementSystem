@@ -1,7 +1,9 @@
 // routes/accounts.js
 const express = require('express');
 const Account = require('../models/Account');
+const { protect, authorize } = require('../middleware/auth');
 const router = express.Router();
+router.use(protect, authorize('admin', 'accountant'));
 
 // Get all accounts/fees with advanced filtering support
 router.get('/', async (req, res) => {

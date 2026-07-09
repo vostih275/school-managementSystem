@@ -1,15 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-// Temporarily comment out auth for testing
-// const auth = require('../middleware/auth');
-const auth = (req, res, next) => { next(); }; // Mock auth for testing
+const { protect, authorize } = require('../middleware/auth');
 const Class = require('../models/Class');
 
 // @route   GET api/classes
 // @desc    Get all classes
 // @access  Private
-router.get('/', auth, async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
     const classes = await Class.find().sort({ level: 1, name: 1 });
     res.json(classes);
@@ -25,7 +23,8 @@ router.get('/', auth, async (req, res) => {
 router.post(
   '/',
   [
-    auth,
+    protect,
+    authorize('admin', 'teacher'),
     [
       body('name', 'Class name is required').not().isEmpty(),
       body('level', 'Level is required').isIn(['Pre-School', 'Primary', 'Elementary', 'Middle School', 'High School']),
@@ -92,7 +91,8 @@ router.post(
 router.put(
   '/:id',
   [
-    auth,
+    protect,
+    authorize('admin', 'teacher'),
     [
       body('name', 'Class name is required').not().isEmpty(),
       body('level', 'Level is required').isIn(['Pre-School', 'Primary', 'Elementary', 'Middle School', 'High School']),
@@ -165,7 +165,7 @@ router.put(
 // @route   DELETE api/classes/:id
 // @desc    Delete a class
 // @access  Private
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', protect, authorize('admin', 'teacher'), async (req, res) => {
   try {
     const classObj = await Class.findById(req.params.id);
     
@@ -180,7 +180,7 @@ router.delete('/:id', auth, async (req, res) => {
       });
     }
 
-    await classObj.remove();
+    await classObj.deleteOne();
     res.json({ msg: 'Class removed' });
   } catch (err) {
     console.error(err.message);

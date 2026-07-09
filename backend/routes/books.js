@@ -1,7 +1,9 @@
 // routes/books.js
 const express = require('express');
 const Book = require('../models/Book');
+const { protect, authorize } = require('../middleware/auth');
 const router = express.Router();
+router.use(protect);
 
 // Get all books with advanced filtering support
 router.get('/', async (req, res) => {
@@ -29,7 +31,7 @@ router.get('/', async (req, res) => {
 });
 
 // Add a new book
-router.post('/', async (req, res) => {
+router.post('/', authorize('admin'), async (req, res) => {
     const { title, author, year, genre, status } = req.body;
     const book = new Book({ title, author, year, genre, status });
 

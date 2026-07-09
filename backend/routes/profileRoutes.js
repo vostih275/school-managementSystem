@@ -56,11 +56,7 @@ router.get('/me', protect, async (req, res) => {
                 email: user.email,
                 role: user.role,
                 class: user.class,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                name: user.firstName ? 
-                    `${user.firstName} ${user.lastName || ''}`.trim() : 
-                    (user.name || 'User'),
+                name: user.name || 'User',
                 completedQuizzes: completedQuizzes
             }
         });

@@ -1,7 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const User = mongoose.models.User || require('../models/User');
+const { protect, authorize } = require('../middleware/auth');
 const router = express.Router();
+router.use(protect, authorize('admin'));
 const schoolUserController = require('../controllers/schoolUserController');
 
 // Get All Users (No Auth for dashboard compatibility)

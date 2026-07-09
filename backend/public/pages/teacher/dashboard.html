@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - School Management System</title>
+    <link rel="stylesheet" href="/css/teacher-dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <h2>SchoolMS</h2>
+            </div>
+            <div class="user-info">
+                <img src="/images/default-avatar.svg" alt="Profile" class="profile-img">
+                <h3 id="teacher-name">Loading...</h3>
+                <p id="teacher-email">teacher@example.com</p>
+            </div>
+            <nav>
+                <ul>
+                    <li class="active"><a href="#" data-section="overview"><i class="fas fa-tachometer-alt"></i> Overview</a></li>
+                    <li><a href="#" data-section="classes"><i class="fas fa-chalkboard"></i> My Classes</a></li>
+                    <li><a href="#" data-section="students"><i class="fas fa-user-graduate"></i> Students</a></li>
+                    <li><a href="#" data-section="attendance"><i class="fas fa-clipboard-check"></i> Attendance</a></li>
+                    <li><a href="#" data-section="assignments"><i class="fas fa-tasks"></i> Assignments</a></li>
+                    <li><a href="#" data-section="grades"><i class="fas fa-graduation-cap"></i> Grades</a></li>
+                    <li><a href="#" data-section="messages"><i class="fas fa-envelope"></i> Messages</a></li>
+                    <li><a href="#" data-section="profile"><i class="fas fa-user"></i> Profile</a></li>
+                    <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header>
+                <div class="header-left">
+                    <button id="sidebar-toggle"><i class="fas fa-bars"></i></button>
+                    <h1>Teacher Dashboard</h1>
+                </div>
+                <div class="header-right">
+                    <div class="notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </div>
+                    <div class="user-menu">
+                        <img src="/images/default-avatar.svg" alt="Profile" class="profile-img-sm">
+                        <span id="user-menu-name">Teacher</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content">
+                <!-- Overview Section -->
+                <section id="overview-section" class="dashboard-section">
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                            <div class="stat-info">
+                                <h3>Classes</h3>
+                                <p id="class-count">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+                            <div class="stat-info">
+                                <h3>Students</h3>
+                                <p id="student-count">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-tasks"></i></div>
+                            <div class="stat-info">
+                                <h3>Assignments</h3>
+                                <p id="assignment-count">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recent-activity">
+                        <h2>Recent Activity</h2>
+                        <div class="activity-list" id="recent-activity">
+                            <p>Loading activities...</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Other sections will be loaded here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/teacher-dashboard.js" type="module"></script>
+</body>
+</html>

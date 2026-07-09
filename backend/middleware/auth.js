@@ -67,6 +67,8 @@ const protect = (req, res, next) => {
       // Format: { user: { id, role } }
       req.user = {
         userId: decoded.user.id || decoded.user._id,
+        id: decoded.user.id || decoded.user._id,
+        _id: decoded.user.id || decoded.user._id,
         role: decoded.user.role,
         ...decoded.user
       };
@@ -74,6 +76,8 @@ const protect = (req, res, next) => {
       // Format: { id, role }
       req.user = { 
         userId: decoded.id,
+        id: decoded.id,
+        _id: decoded.id,
         role: decoded.role,
         ...decoded 
       };
@@ -81,6 +85,8 @@ const protect = (req, res, next) => {
       // Another possible format: { userId, role }
       req.user = { 
         userId: decoded.userId, 
+        id: decoded.userId,
+        _id: decoded.userId,
         role: decoded.role,
         ...decoded 
       };

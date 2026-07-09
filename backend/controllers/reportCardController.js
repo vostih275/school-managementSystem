@@ -115,7 +115,7 @@ const sendReportCard = async (req, res) => {
         // Create report card record
         const reportCard = new ReportCard({
             studentId,
-            studentName: `${student.firstName} ${student.lastName}`,
+            studentName: student.name,
             term,
             year,
             comments: comments || '',
@@ -198,8 +198,8 @@ const getStudentReportCards = async (req, res) => {
         // Find all matching report cards
         const reportCards = await ReportCard.find(query)
             .sort({ year: -1, term: -1 })
-            .populate('studentId', 'firstName lastName email')
-            .populate('uploadedBy', 'firstName lastName');
+            .populate('studentId', 'name email')
+            .populate('uploadedBy', 'name');
         
         console.log(`Found ${reportCards.length} report cards`);
         
@@ -302,7 +302,7 @@ const getAllReportCards = async (req, res) => {
     try {
         // Get all report cards with student information
         const reportCards = await ReportCard.find()
-            .populate('studentId', 'firstName lastName email')
+            .populate('studentId', 'name email')
             .sort({ createdAt: -1 });
 
         res.status(200).json({

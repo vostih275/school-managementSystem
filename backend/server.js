@@ -1,96 +1,117 @@
+require('dotenv').config();
+
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
 const connectDB = require('./config/db');
+const corsMiddleware = require('./middleware/cors');
+const requestLogger = require('./middleware/requestLogger');
 
-// Load environment variables
-dotenv.config();
+const app = express();
 
-const app = require('./app');
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Resolve the root static directory:
+// - In production the bundled frontend lives in `backend/public`.
+// - In local development it lives in `../frontend`.
+const publicDir = path.join(__dirname, isProduction ? 'public' : '../frontend');
+const indexHtml = path.join(publicDir, isProduction ? 'index.html' : 'pages/login.html');
 
 // Connect to MongoDB
 connectDB();
 
-// Middleware - Enable CORS for all routes
-app.use(cors({
-    origin: '*',  // Allow all origins for now
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-}));
+// Trust proxy (required for platforms like Render)
+app.set('trust proxy', 1);
 
-// Handle preflight requests
-app.options('*', cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Request logging
+app.use(requestLogger);
 
-// Serve favicon.ico
+// CORS (single, consistent middleware)
+app.use(corsMiddleware);
+
+// Body parsers
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Ensure upload directories exist
+const uploadsDir = path.join(__dirname, 'uploads');
+const profilePhotosDir = path.join(uploadsDir, 'profile-photos');
+const reportCardsDir = path.join(publicDir, 'uploads', 'report-cards');
+const publicAssetsDir = path.join(publicDir, 'assets');
+const cbcReportCardsDir = path.join(publicDir, 'downloads', 'report-cards');
+[uploadsDir, profilePhotosDir, reportCardsDir, publicAssetsDir, cbcReportCardsDir].forEach(dir => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
+
+// Static files
+app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads/profile-photos', express.static(profilePhotosDir));
+app.use('/report-cards', express.static(reportCardsDir));
+app.use('/public/assets', express.static(publicAssetsDir));
+app.use('/downloads/report-cards', express.static(cbcReportCardsDir));
+
+// Serve frontend static files from the bundled public directory
+app.use(express.static(publicDir));
+
+// Favicon
 app.get('/favicon.ico', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/favicon.ico'), { headers: { 'Content-Type': 'image/x-icon' } });
+  res.sendFile(path.join(publicDir, 'favicon.ico'), { headers: { 'Content-Type': 'image/x-icon' } });
 });
 
-// Serve static files from frontend directories
-app.use(express.static(path.join(__dirname, '../frontend')));
-app.use('/css', express.static(path.join(__dirname, '../frontend/css')));
-app.use('/js', express.static(path.join(__dirname, '../frontend/js')));
-app.use('/images', express.static(path.join(__dirname, '../frontend/images')));
-
-// Route for the root URL to serve login.html
+// Root routes
 app.get(['/', '/login'], (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/pages/login.html'));
+  res.sendFile(indexHtml);
 });
 
-// Route for index.html (admin dashboard)
 app.get('/index.html', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/pages/index.html'));
+  res.sendFile(indexHtml);
 });
 
-// Handle all other HTML routes by serving the login page (client-side routing will handle the rest)
-app.get('*.html', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/pages/login.html'));
-});
+// API routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/announcements', require('./routes/announcementRoutes'));
+app.use('/api/profile', require('./routes/profileRoutes'));
+app.use('/api/resources', require('./routes/resourceRoutes'));
+app.use('/api/clubs', require('./routes/clubs'));
+app.use('/api/books', require('./routes/books'));
+app.use('/api/events', require('./routes/events'));
+app.use('/api/accounts', require('./routes/accounts'));
+app.use('/api/stats', require('./routes/stats'));
+app.use('/api/users', require('./routes/schoolUserRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/contact', require('./routes/contact'));
+app.use('/api/health', require('./routes/health'));
+app.use('/api/assignments', require('./routes/assignmentRoutes'));
+app.use('/api/grades', require('./routes/gradesRoutes'));
+app.use('/api/homeworks', require('./routes/homeworkRoutes'));
+app.use('/api/roles', require('./routes/roles'));
+app.use('/api/quizzes', require('./routes/quizRoutes'));
+app.use('/api/classes', require('./routes/class'));
+app.use('/api/marks', require('./routes/marksRoutes'));
+app.use('/api/fees', require('./routes/fees'));
+app.use('/api/report-cards', require('./routes/reportCardRoutes'));
+app.use('/api/attendance', require('./routes/attendanceRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/students', require('./routes/studentRoutes'));
+app.use('/api/teachers', require('./routes/teacherRoutes'));
+app.use('/api/library', require('./routes/library'));
+app.use('/api/backups', require('./routes/backups'));
+app.use('/api/cbc', require('./routes/cbcRoutes'));
 
-// API Routes
-const authRoutes = require('./routes/authRoutes');
-const assignmentRoutes = require('./routes/assignmentRoutes');
-const gradeRoutes = require('./routes/gradesRoutes');
-const announcementRoutes = require('./routes/announcementRoutes');
-const profileRoutes = require('./routes/profileRoutes');
-const resourceRoutes = require('./routes/resourceRoutes');
-// const reportCardRoutes = require('./routes/reportCardRoutes'); // disabled
-const clubRoutes = require('./routes/clubs');
-const bookRoutes = require('./routes/books');
-const eventRoutes = require('./routes/events');
-const accountRoutes = require('./routes/accounts');
-const statsRoutes = require('./routes/stats');
-const schoolUserRoutes = require('./routes/schoolUserRoutes');
-const contactRoutes = require('./routes/contact');
-const healthRoutes = require('./routes/health');
-
-// Mount routes
-app.use('/api/auth', authRoutes);
-app.use('/api/assignments', assignmentRoutes);
-app.use('/api/grades', gradeRoutes);
-app.use('/api/announcements', announcementRoutes);
-app.use('/api/profile', profileRoutes);
-app.use('/api/resources', resourceRoutes);
-app.use('/api/clubs', clubRoutes);
-app.use('/api/books', bookRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/accounts', accountRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/users', schoolUserRoutes);
-app.use('/api/contact', contactRoutes);
-app.use('/api/health', healthRoutes);
-
-// Fallback: if no API route matches, serve frontend index.html (important for login/dashboard)
+// Fallback for unmatched routes (SPA / direct page refresh behavior)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend', 'login.html'));
+  res.sendFile(indexHtml);
 });
 
-// Start server
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error'
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

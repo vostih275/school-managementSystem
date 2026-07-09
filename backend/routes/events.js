@@ -2,7 +2,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Event = mongoose.models.Event || require('../models/Event');
+const { protect, authorize } = require('../middleware/auth');
 const router = express.Router();
+router.use(protect);
 
 // Get all events
 router.get('/', async (req, res) => {
@@ -15,7 +17,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create a new event
-router.post('/', async (req, res) => {
+router.post('/', authorize('admin'), async (req, res) => {
     const { title, description, date, location } = req.body;
     const event = new Event({ title, description, date, location });
 

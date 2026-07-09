@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticateUser, authorizeRoles } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/auth');
 const Assignment = require('../models/Assignment');
 const upload = require('../middleware/upload');
 
@@ -8,8 +8,8 @@ const router = express.Router();
 // Create Assignment (Only for Teachers)
 router.post(
   '/',
-  authenticateUser,
-  authorizeRoles('teacher'),
+  protect,
+  authorize('teacher'),
   upload.single('assignment-file'),
   async (req, res) => {
     try {
@@ -49,7 +49,7 @@ router.post(
 );
 
 // Get All Assignments (Accessible to students + teachers)
-router.get('/', authenticateUser, async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
     const assignments = await Assignment.find().populate('teacher', 'name email');
     res.json(assignments);
@@ -63,7 +63,7 @@ router.get('/', authenticateUser, async (req, res) => {
 });
 
 // Get Single Assignment (Accessible to students + teachers)
-router.get('/:id', authenticateUser, async (req, res) => {
+router.get('/:id', protect, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
       .populate('teacher', 'name email')
@@ -84,7 +84,7 @@ router.get('/:id', authenticateUser, async (req, res) => {
 });
 
 // Update Assignment (Only for Teachers)
-router.put('/:id', authenticateUser, authorizeRoles('teacher'), async (req, res) => {
+router.put('/:id', protect, authorize('teacher'), async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id);
     
@@ -120,7 +120,7 @@ router.put('/:id', authenticateUser, authorizeRoles('teacher'), async (req, res)
 });
 
 // Delete Assignment (Only for Teachers)
-router.delete('/:id', authenticateUser, authorizeRoles('teacher'), async (req, res) => {
+router.delete('/:id', protect, authorize('teacher'), async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id);
     
@@ -145,7 +145,7 @@ router.delete('/:id', authenticateUser, authorizeRoles('teacher'), async (req, r
 });
 
 // Submit Assignment (Only for Students)
-router.post('/:id/submit', authenticateUser, authorizeRoles('student'), upload.single('submission-file'), async (req, res) => {
+router.post('/:id/submit', protect, authorize('student'), upload.single('submission-file'), async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id);
     
@@ -183,7 +183,7 @@ router.post('/:id/submit', authenticateUser, authorizeRoles('student'), upload.s
 });
 
 // Grade Assignment (Only for Teachers)
-router.put('/:id/grade/:studentId', authenticateUser, authorizeRoles('teacher'), async (req, res) => {
+router.put('/:id/grade/:studentId', protect, authorize('teacher'), async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id);
     

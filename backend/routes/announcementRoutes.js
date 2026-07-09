@@ -1,16 +1,16 @@
 const express = require('express');
-const { authenticateUser, authorizeRoles } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/auth');
 const { createAnnouncement, getAnnouncements, deleteAnnouncement } = require('../controllers/announcementController');
 
 const router = express.Router();
 
 // 📝 Create a new announcement (teacher only)
-router.post('/', authenticateUser, authorizeRoles('teacher'), createAnnouncement);
+router.post('/', protect, authorize('teacher'), createAnnouncement);
 
 // 📄 Get all announcements (any logged-in user)
-router.get('/', authenticateUser, getAnnouncements);
+router.get('/', protect, getAnnouncements);
 
 // 🗑️ Delete an announcement (teacher only)
-router.delete('/:id', authenticateUser, authorizeRoles('teacher'), deleteAnnouncement);
+router.delete('/:id', protect, authorize('teacher'), deleteAnnouncement);
 
 module.exports = router;

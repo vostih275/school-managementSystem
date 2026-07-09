@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+backend/node_modules
+frontend/pages/node_modules
+frontend/**/node_modules
+public/downloads
+public/uploads
+public/assets
+uploads
+.vscode
+.idea

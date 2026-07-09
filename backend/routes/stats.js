@@ -2,7 +2,9 @@
 const express = require('express');
 const User = require('../models/User');
 const Event = require('../models/Event');
+const { protect } = require('../middleware/auth');
 const router = express.Router();
+router.use(protect);
 
 // Get stats (number of students, teachers, and events)
 router.get('/', async (req, res) => {

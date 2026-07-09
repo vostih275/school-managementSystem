@@ -81,8 +81,8 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
             
             const update = {
                 $set: {
-                    studentName: `${student.firstName} ${student.lastName}`,
-                    class: student.className || 'Grade 8',
+                    studentName: student.name,
+                    class: student.class || student.profile?.class || 'Grade 8',
                     score: marks,
                     grade: grade || calculateGrade(marks),
                     teacher: req.user.id,
@@ -121,9 +121,9 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
     if (subjectsData.length > 0) {
         try {
             // Generate HTML for the report card
-            const studentInfo = await User.findById(studentId).select('firstName lastName className').lean();
-            const studentName = studentInfo ? `${studentInfo.firstName} ${studentInfo.lastName}` : 'Student';
-            const className = studentInfo?.className || 'Unknown';
+            const studentInfo = await User.findById(studentId).select('name class profile.class').lean();
+            const studentName = studentInfo ? studentInfo.name : 'Student';
+            const className = studentInfo?.class || studentInfo?.profile?.class || 'Unknown';
             
             // Generate HTML content for the report card
             const htmlContent = `
@@ -268,9 +268,9 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
 
         if (marks.length > 0) {
             // Generate HTML for the report card
-            const studentInfo = await User.findById(student).select('firstName lastName className').lean();
-            const studentName = studentInfo ? `${studentInfo.firstName} ${studentInfo.lastName}` : studentName || 'Student';
-            const className = studentInfo?.className || className || 'Unknown';
+            const studentInfo = await User.findById(student).select('name class profile.class').lean();
+            const studentName = studentInfo ? studentInfo.name : studentName || 'Student';
+            const className = studentInfo?.class || studentInfo?.profile?.class || className || 'Unknown';
 
             // Calculate average score
             const totalScore = marks.reduce((sum, mark) => sum + mark.score, 0);
@@ -477,7 +477,7 @@ exports.finalizeMarks = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this grade`, 401));
     }
     
-    grade.status = 'finalized';
+    grade.isFinalized = true;
     await grade.save();
     
     res.status(200).json({
@@ -502,7 +502,7 @@ exports.getStudentReportCard = asyncHandler(async (req, res, next) => {
         
         // First, get the student information
         const student = await User.findById(req.params.studentId)
-            .select('firstName lastName email className')
+            .select('name email class profile.class')
             .lean();
             
         if (!student) {
@@ -536,9 +536,9 @@ exports.getStudentReportCard = asyncHandler(async (req, res, next) => {
             data: {
                 student: {
                     id: student._id,
-                    name: student.firstName ? `${student.firstName} ${student.lastName}`.trim() : 'Unknown Student',
+                    name: student.name || 'Unknown Student',
                     email: student.email || '',
-                    className: student.className || ''
+                    className: student.class || student.profile?.class || ''
                 },
                 term,
                 academicYear,

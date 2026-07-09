@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticateUser, authorizeRoles } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/auth');
 const Homework = require('../models/Homework');
 const multer = require('multer');
 const path = require('path');
@@ -45,8 +45,8 @@ const router = express.Router();
 // Create Homework (Only for Teachers)
 router.post(
   '/',
-  authenticateUser,
-  authorizeRoles('teacher'),
+  protect,
+  authorize('teacher'),
   homeworkUpload.single('homework-file'),
   async (req, res) => {
     try {
@@ -86,7 +86,7 @@ router.post(
 );
 
 // Get All Homeworks (Accessible to students + teachers)
-router.get('/', authenticateUser, async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
     let query = {};
     
@@ -120,8 +120,8 @@ router.get('/', authenticateUser, async (req, res) => {
 // Submit Homework (Only for Students)
 router.post(
   '/submit/:homeworkId',
-  authenticateUser,
-  authorizeRoles('student'),
+  protect,
+  authorize('student'),
   homeworkUpload.single('submission-file'),
   async (req, res) => {
     try {
@@ -164,7 +164,7 @@ router.post(
 );
 
 // Get a single homework with submissions
-router.get('/:id', authenticateUser, async (req, res) => {
+router.get('/:id', protect, async (req, res) => {
   try {
     const homework = await Homework.findById(req.params.id)
       .populate('teacher', 'name email')
@@ -203,8 +203,8 @@ router.get('/:id', authenticateUser, async (req, res) => {
 // Grade Homework (Only for Teachers)
 router.put(
   '/grade/:homeworkId/:submissionId',
-  authenticateUser,
-  authorizeRoles('teacher'),
+  protect,
+  authorize('teacher'),
   async (req, res) => {
     try {
       const { grade, comments } = req.body;
@@ -241,8 +241,8 @@ router.put(
 // Delete Homework (Only for Teachers)
 router.delete(
   '/:id',
-  authenticateUser,
-  authorizeRoles('teacher'),
+  protect,
+  authorize('teacher'),
   async (req, res) => {
     try {
       const homework = await Homework.findByIdAndDelete(req.params.id);

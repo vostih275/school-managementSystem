@@ -16,6 +16,7 @@ const calculateFine = (dueDate) => {
 
 // Import the protect middleware
 const { protect } = require('../middleware/auth');
+router.use(protect);
 
 // GET /api/library/my-books - get books issued to current student
 router.get('/my-books', protect, async (req, res) => {

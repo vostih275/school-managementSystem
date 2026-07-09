@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { authenticateUser, authorizeRoles } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/auth');
 const Resource = require('../models/Resource'); // Ensure Resource model is imported
 
 const router = express.Router();
@@ -38,7 +38,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage, fileFilter: fileFilter }).single('resource');
 
 // POST route for uploading a file
-router.post('/upload', authenticateUser, authorizeRoles('teacher'), function (req, res, next) {
+router.post('/upload', protect, authorize('teacher'), function (req, res, next) {
   upload(req, res, function (err) {
     if (err instanceof multer.MulterError) {
       return res.status(400).json({ success: false, message: err.message });
@@ -79,7 +79,7 @@ router.post('/upload', authenticateUser, authorizeRoles('teacher'), function (re
 });
 
 // GET route for fetching uploaded resources (now from the database)
-router.get('/', authenticateUser, async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
     const { class: classFilter } = req.query;
     const userRole = req.user.role;
@@ -192,7 +192,7 @@ router.get('/', authenticateUser, async (req, res) => {
 });
 
 // DELETE resource endpoint
-router.delete('/:resourceId', authenticateUser, authorizeRoles('teacher'), async (req, res) => {
+router.delete('/:resourceId', protect, authorize('teacher'), async (req, res) => {
   const { resourceId } = req.params;
   
   try {

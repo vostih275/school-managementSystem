@@ -397,7 +397,7 @@ router.post('/submit', protect, async (req, res) => {
         
         // Get class information
         let classId = quiz.classId || quiz.class;
-        const quizClassName = quiz.className || (typeof quiz.class === 'string' ? quiz.class : null);
+        let quizClassName = quiz.className || (typeof quiz.class === 'string' ? quiz.class : null);
         
         console.log('Initial class info:', { 
             classFromQuiz: quiz.class,
@@ -453,7 +453,7 @@ router.post('/submit', protect, async (req, res) => {
         const submissionData = {
             quiz: quizId,
             user: userId,
-            studentName: req.body.studentName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Anonymous',
+            studentName: req.body.studentName || user.name || 'Anonymous',
             studentEmail: req.body.studentEmail || user.email || 'no-email@example.com',
             class: classId, // Can be either ObjectId or string
             className: classNameToStore, // Store the class name separately for easier querying
@@ -546,7 +546,7 @@ router.get('/submissions/quiz/:quizId', protect, async (req, res) => {
         }
 
         const submissions = await Submission.find({ quiz: req.params.quizId })
-            .populate('user', 'firstName lastName email')
+            .populate('user', 'name email')
             .sort({ submittedAt: -1 });
 
         res.status(200).json({ success: true, data: submissions });
@@ -564,8 +564,8 @@ router.get('/submissions/quiz/:quizId', protect, async (req, res) => {
 router.get('/submissions/detail/:submissionId', protect, async (req, res) => {
     try {
         const submission = await Submission.findById(req.params.submissionId)
-            .populate('studentId', 'firstName lastName email')
-            .populate('quizId', 'title questions');
+            .populate('user', 'name email')
+            .populate('quiz', 'title questions');
 
         if (!submission) {
             return res.status(404).json({ 
@@ -575,7 +575,7 @@ router.get('/submissions/detail/:submissionId', protect, async (req, res) => {
         }
 
         // Only allow the student who submitted or admin/teacher to view
-        if (req.user.role === 'student' && submission.studentId._id.toString() !== req.user.id) {
+        if (req.user.role === 'student' && submission.user._id.toString() !== req.user.id) {
             return res.status(403).json({ 
                 success: false, 
                 message: 'Not authorized to view this submission' 

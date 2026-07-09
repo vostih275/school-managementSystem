@@ -2,14 +2,13 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { authenticateUser, authorizeRoles } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/auth');
 const { 
     getStudents, 
     getStudentsByClass,
     getStudentProfile, 
     updateStudentProfile, 
-    registerStudent, 
-    registerUser,
+    changePassword,
     uploadProfilePhoto 
 } = require('../controllers/studentController');
 
@@ -63,32 +62,10 @@ const upload = multer({
 const router = express.Router();
 
 // Get students by class
-router.get('/class/:className', authenticateUser, getStudentsByClass);
-
-// ✅ Register User (Student or Teacher) - Public endpoint
-router.post('/register', (req, res, next) => {
-    console.log('Received registration request:', {
-        method: req.method,
-        url: req.url,
-        headers: req.headers,
-        body: req.body
-    });
-    next();
-}, registerUser);
-
-// Register New Student - Public endpoint
-router.post('/register/student', (req, res, next) => {
-    console.log('Received student registration request:', {
-        method: req.method,
-        url: req.url,
-        headers: req.headers,
-        body: req.body
-    });
-    next();
-}, registerStudent);
+router.get('/class/:className', protect, getStudentsByClass);
 
 // Change Password
-router.put('/change-password', authenticateUser, (req, res) => {
+router.put('/change-password', protect, (req, res) => {
     console.log('Received change password request:', {
         method: req.method,
         url: req.url,
@@ -99,7 +76,7 @@ router.put('/change-password', authenticateUser, (req, res) => {
 
 // User Profile Routes
 // Handle both /profile and /profile/:id with separate routes for better compatibility
-router.get('/profile', authenticateUser, (req, res, next) => {
+router.get('/profile', protect, (req, res, next) => {
     // If no ID is provided, use the current user's ID
     req.params = {}; // Clear any existing params
     console.log('Received get current user profile request:', {
@@ -111,7 +88,7 @@ router.get('/profile', authenticateUser, (req, res, next) => {
 });
 
 // Get profile by ID
-router.get('/profile/:id', authenticateUser, (req, res, next) => {
+router.get('/profile/:id', protect, (req, res, next) => {
     // Get profile for the specified ID
     console.log('Received get user profile by ID request:', {
         method: req.method,
@@ -123,7 +100,7 @@ router.get('/profile/:id', authenticateUser, (req, res, next) => {
 });
 
 // Update student profile
-router.put('/profile', authenticateUser, (req, res, next) => {
+router.put('/profile', protect, (req, res, next) => {
     console.log('Received update student profile request:', {
             method: req.method,
             url: req.url,
@@ -135,7 +112,7 @@ router.put('/profile', authenticateUser, (req, res, next) => {
 
 // Student Profile Photo Upload
 router.post('/profile/photo', 
-    authenticateUser, 
+    protect, 
     upload.single('photo'), 
     uploadProfilePhoto,
     (err, req, res, next) => {
@@ -186,9 +163,9 @@ router.get('/profile', (req, res, next) => {
         query: req.query
     });
     next();
-}, authenticateUser, authorizeRoles('Student'), getStudentProfile);
+}, protect, authorize('Student'), getStudentProfile);
 
 // Update Student Profile (Only the student)
-router.put('/profile', authenticateUser, authorizeRoles('Student'), updateStudentProfile);
+router.put('/profile', protect, authorize('Student'), updateStudentProfile);
 
 module.exports = router;

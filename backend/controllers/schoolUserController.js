@@ -1,19 +1,12 @@
 // controllers/schoolUserController.js
-const SchoolUser = require('../models/SchoolUser');
-const User = require('../models/User');  // Import the User model
+const User = require('../models/User');
 
 // Delete a user
 exports.deleteUser = async (req, res) => {
   try {
     const userId = req.params.id;
     
-    // First try to delete from SchoolUser collection
-    let deletedUser = await SchoolUser.findByIdAndDelete(userId);
-    
-    // If not found in SchoolUser, try the User collection
-    if (!deletedUser) {
-      deletedUser = await User.findByIdAndDelete(userId);
-    }
+    const deletedUser = await User.findByIdAndDelete(userId);
     
     if (!deletedUser) {
       return res.status(404).json({ message: 'User not found' });
@@ -35,14 +28,12 @@ exports.getAllUsers = async (req, res) => {
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { username: { $regex: search, $options: 'i' } }
+        { email: { $regex: search, $options: 'i' } }
       ];
     }
-    if (role) filter.role = role;
-    if (status) filter.status = status;
+    if (role) filter.role = role.toLowerCase();
 
-    const users = await SchoolUser.find(filter);
+    const users = await User.find(filter).select('-password');
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err });
@@ -53,18 +44,34 @@ exports.getAllUsers = async (req, res) => {
 exports.createUser = async (req, res) => {
   const { name, email, password, role, subject, studentClass } = req.body;
 
-  try {
-    const newUser = new SchoolUser({
-      name,
-      email,
-      password,  // Consider hashing the password for security
-      role,
-      subject: role === 'teacher' ? subject : undefined,
-      studentClass: role === 'student' ? studentClass : undefined,
-    });
+  // Normalize email for consistent lookup and storage
+  const normalizedEmail = (email || '').toLowerCase().trim();
 
-    await newUser.save();  // Save the new user to the database
-    res.status(201).json({ message: 'User created successfully' });
+  try {
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    const userData = {
+      name,
+      email: normalizedEmail,
+      password,
+      role: role ? role.toLowerCase() : 'student',
+      profile: {}
+    };
+
+    if (userData.role === 'teacher' && subject) {
+      userData.profile.subjects = Array.isArray(subject) ? subject : [subject];
+    }
+    if ((userData.role === 'student' || userData.role === 'parent') && studentClass) {
+      userData.class = studentClass;
+      userData.profile.class = studentClass;
+    }
+
+    const newUser = new User(userData);
+    await newUser.save();
+    res.status(201).json({ message: 'User created successfully', user: newUser });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err });
   }

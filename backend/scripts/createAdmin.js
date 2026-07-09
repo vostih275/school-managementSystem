@@ -26,6 +26,7 @@ const createAdminUser = async (name, email, password) => {
       email,
       password: hashedPassword,
       role: 'admin',
+      requiresPasswordChange: false, // Admin accounts created via script are ready to log in
       profile: {
         // Add any additional profile fields here if needed
       }

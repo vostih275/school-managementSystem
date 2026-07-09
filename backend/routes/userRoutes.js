@@ -1,7 +1,8 @@
 const express = require('express');
 const User = require('../models/User');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
+const { provisionUser } = require('../controllers/authController');
 
 // Debug middleware to log all requests to user routes
 router.use((req, res, next) => {
@@ -61,8 +62,7 @@ router.get('/me', protect, async (req, res) => {
                 user: {
                     _id: user._id,
                     email: user.email,
-                    firstName: user.firstName || '',
-                    lastName: user.lastName || '',
+                    name: user.name || '',
                     role: user.role,
                     class: user.class || '',
                     completedQuizzes: []
@@ -107,8 +107,7 @@ router.get('/me', protect, async (req, res) => {
         const userResponse = {
             _id: populatedUser._id,
             email: populatedUser.email,
-            firstName: populatedUser.firstName || '',
-            lastName: populatedUser.lastName || '',
+            name: populatedUser.name || '',
             role: populatedUser.role,
             class: populatedUser.class || '',
             completedQuizzes: validCompletedQuizzes.map(quiz => ({
@@ -140,8 +139,7 @@ router.get('/me', protect, async (req, res) => {
         const safeUser = {
             _id: req.user?.userId,
             email: req.user?.email || '',
-            firstName: req.user?.firstName || '',
-            lastName: req.user?.lastName || '',
+            name: req.user?.name || '',
             role: req.user?.role || 'student',
             class: req.user?.class || '',
             completedQuizzes: []
@@ -155,5 +153,12 @@ router.get('/me', protect, async (req, res) => {
         console.log(`[DEBUG] GET /api/users/me - Completed for user ${req.user?.userId}`);
     }
 });
+
+/**
+ * @route   POST /api/users/provision
+ * @desc    Provision a new user account (admin any role; teacher students only)
+ * @access  Private (Admin or Teacher)
+ */
+router.post('/provision', protect, authorize('admin', 'teacher'), provisionUser);
 
 module.exports = router;

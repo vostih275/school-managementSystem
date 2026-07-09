@@ -18,10 +18,6 @@ const {
 const { protect, authorize } = require('../middleware/auth');
 const { generatePdfFromHtml } = require('../utils/pdfGenerator');
 
-// Alias for backward compatibility
-const authenticateUser = protect;
-const authorizeRoles = (...roles) => authorize(...roles);
-
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: async (req, file, cb) => {
@@ -82,8 +78,8 @@ const handleFileUploadErrors = (err, req, res, next) => {
  */
 router.post(
     '/',
-    authenticateUser,
-    authorizeRoles(['teacher', 'admin']),
+    protect,
+    authorize('teacher', 'admin'),
     (req, res, next) => {
         // If no file is being uploaded, skip multer
         if (!req.is('multipart/form-data') || !req.headers['content-type']?.includes('multipart/form-data')) {
@@ -108,7 +104,7 @@ router.post(
     '/generate',
     upload.none(),
     express.json(),
-    authenticateUser,
+    protect,
     authorize('teacher', 'admin'),
     async (req, res) => {
       console.log('=== REPORT CARD GENERATION REQUEST ===');
@@ -269,7 +265,7 @@ router.post(
             // Create report card record with all required fields
             const reportCard = new ReportCard({
                 studentId,
-                studentName: `${student.firstName} ${student.lastName}`.trim(),
+                studentName: student.name,
                 term: term.trim(),
                 year: year.trim(),
                 comments: comments || '',
@@ -341,7 +337,7 @@ router.post(
  */
 router.get(
     '/student/:studentId',
-    authenticateUser,
+    protect,
     getStudentReportCards
 );
 
@@ -352,7 +348,7 @@ router.get(
  */
 router.get(
     '/student',
-    authenticateUser,
+    protect,
     (req, res, next) => {
         // Set req.params.studentId to null to indicate current user
         req.params.studentId = null;
@@ -368,15 +364,15 @@ router.get(
  */
 router.get(
     '/:id',
-    authenticateUser,
+    protect,
     getReportCard
 );
 
 // Legacy upload endpoint (for backward compatibility)
 router.post(
     '/',
-    authenticateUser,
-    authorizeRoles(['teacher', 'admin']),
+    protect,
+    authorize('teacher', 'admin'),
     upload.single('reportCard'),
     handleFileUploadErrors,
     async (req, res, next) => {
@@ -422,8 +418,8 @@ router.post(
 
 // Delete a report card (admin/teacher only)
 router.delete('/:id', 
-    authenticateUser, 
-    authorizeRoles(['admin', 'teacher']),
+    protect, 
+    authorize('admin', 'teacher'),
     async (req, res) => {
         try {
             const report = await ReportCard.findById(req.params.id);
@@ -459,10 +455,10 @@ router.delete('/:id',
 );
 
 // Debug route to list all report cards (temporary, remove in production)
-router.get('/debug/all', authenticateUser, async (req, res) => {
+router.get('/debug/all', protect, async (req, res) => {
   try {
     // Only allow admins to use this debug endpoint
-    if (req.user.role !== 'Admin') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ msg: 'Access denied' });
     }
     
@@ -492,7 +488,7 @@ router.get('/debug/all', authenticateUser, async (req, res) => {
  */
 router.get(
     '/',
-    authenticateUser,
+    protect,
     authorize('admin', 'teacher'),
     async (req, res) => {
         console.log('User accessing report cards:', {
@@ -510,7 +506,7 @@ router.get(
  */
 router.get(
     '/download/:id',
-    authenticateUser,
+    protect,
     async (req, res) => {
         try {
             const reportCard = await ReportCard.findById(req.params.id);

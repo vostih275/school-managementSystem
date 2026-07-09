@@ -26,7 +26,7 @@ exports.updateProfile = async (req, res) => {
     // Update user information
     console.log('Updating user fields...');
     user.name = name || user.name;
-    user.email = email || user.email;
+    user.email = (email || user.email).toLowerCase().trim();
     
     // Initialize profile if it doesn't exist
     user.profile = user.profile || {};
