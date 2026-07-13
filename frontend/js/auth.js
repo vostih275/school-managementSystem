@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = loginForm.querySelector('#password').value;
 
             try {
-                const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/auth/login', {
+                const response = await fetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/auth/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -25,6 +25,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Response data:', data);
                 console.log('Response headers:', Object.fromEntries([...response.headers.entries()]));
                 console.groupEnd();
+
+                // If the user must change their temporary password, redirect to the password update page
+                if (response.status === 403 && (data.requiresPasswordChange || data.forcePasswordReset)) {
+                    localStorage.setItem('pendingPasswordChangeEmail', email);
+                    if (data.userId || (data.user && data.user.id)) {
+                        localStorage.setItem('pendingPasswordChangeUserId', data.userId || data.user.id);
+                    }
+                    window.location.href = '/pages/login.html?change-password=true';
+                    return;
+                }
 
                 if (response.ok) {
                     // Clear any existing auth data

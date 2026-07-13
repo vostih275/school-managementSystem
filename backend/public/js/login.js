@@ -97,6 +97,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const classGroup = document.getElementById('class-group');
     const formTitle = document.getElementById('form-title');
 
+    // If the user arrived from the "requires password change" redirect,
+    // show the reset form and pre-fill the stored email.
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('change-password') === 'true' && loginForm && resetForm) {
+        loginForm.style.display = 'none';
+        resetForm.style.display = 'block';
+        if (formTitle) formTitle.textContent = 'Set Your Password';
+        const pendingEmail = localStorage.getItem('pendingPasswordChangeEmail');
+        if (pendingEmail) {
+            const resetEmailInput = document.getElementById('reset-email');
+            if (resetEmailInput) resetEmailInput.value = pendingEmail;
+        }
+    }
+
     // Wire first-time password reset form
     if (resetForm) {
         resetForm.addEventListener('submit', handlePasswordReset);
@@ -139,19 +153,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('Invalid response from server');
                 }
                 
-                // Handle forcePasswordReset — backend returns 403 with this flag
-                if (response.status === 403 && responseData.forcePasswordReset) {
-                    console.log('First-time login: forcePasswordReset detected');
-                    // Hide login form, show reset form
-                    loginForm.style.display = 'none';
-                    const resetForm = document.getElementById('reset-form');
-                    if (resetForm) {
-                        resetForm.style.display = 'block';
-                        // Pre-fill the email field
-                        const resetEmailInput = document.getElementById('reset-email');
-                        if (resetEmailInput) resetEmailInput.value = email;
+                // Handle requiresPasswordChange / forcePasswordReset — backend returns 403 with this flag
+                if (response.status === 403 && (responseData.requiresPasswordChange || responseData.forcePasswordReset)) {
+                    console.log('First-time login: requiresPasswordChange detected');
+                    // Store email (and user id if available) for the password-change page
+                    localStorage.setItem('pendingPasswordChangeEmail', email);
+                    if (responseData.userId || (responseData.user && responseData.user.id)) {
+                        localStorage.setItem('pendingPasswordChangeUserId', responseData.userId || responseData.user.id);
                     }
-                    document.getElementById('form-title').textContent = 'Set Your Password';
+                    // Redirect to the password update page (reusing the login page's reset form)
+                    window.location.href = '/pages/login.html?change-password=true';
                     return;
                 }
 
