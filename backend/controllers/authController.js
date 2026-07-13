@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 require('dotenv').config();
 
@@ -238,7 +239,7 @@ exports.loginUser = async (req, res) => {
         
         if (!user) {
             console.log('❌ User not found with email:', email);
-            console.log('Connected MongoDB database:', mongoose.connection?.name || 'unknown');
+            console.log('Connected MongoDB database:', mongoose.connection?.db?.databaseName || mongoose.connection?.name || 'unknown');
             return res.status(401).json({ 
                 success: false,
                 msg: 'Invalid email or password' 
