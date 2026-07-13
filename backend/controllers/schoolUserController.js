@@ -1,4 +1,5 @@
 // controllers/schoolUserController.js
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
 // Delete a user
@@ -47,17 +48,24 @@ exports.createUser = async (req, res) => {
   // Normalize email for consistent lookup and storage
   const normalizedEmail = (email || '').toLowerCase().trim();
 
+  // Default temporary password if admin does not provide one
+  const plainPassword = password && password.trim() ? password.trim() : 'Welcome123!';
+
   try {
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ message: 'User with this email already exists' });
     }
 
+    // Hash the password before saving
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
     const userData = {
       name,
       email: normalizedEmail,
-      password,
+      password: hashedPassword,
       role: role ? role.toLowerCase() : 'student',
+      requiresPasswordChange: true,
       profile: {}
     };
 
@@ -71,8 +79,12 @@ exports.createUser = async (req, res) => {
 
     const newUser = new User(userData);
     await newUser.save();
+
+    console.log(`User created with default password: ${plainPassword}`);
+
     res.status(201).json({ message: 'User created successfully', user: newUser });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err });
+    console.error('Error creating user:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
