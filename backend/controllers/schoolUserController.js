@@ -1,5 +1,4 @@
 // controllers/schoolUserController.js
-const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
 // Delete a user
@@ -57,13 +56,10 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ message: 'User with this email already exists' });
     }
 
-    // Hash the password before saving
-    const hashedPassword = await bcrypt.hash(plainPassword, 10);
-
     const userData = {
       name,
       email: normalizedEmail,
-      password: hashedPassword,
+      password: plainPassword,
       role: role ? role.toLowerCase() : 'student',
       requiresPasswordChange: true,
       profile: {}
@@ -76,6 +72,8 @@ exports.createUser = async (req, res) => {
       userData.class = studentClass;
       userData.profile.class = studentClass;
     }
+
+    console.log('Plain password before save:', plainPassword);
 
     const newUser = new User(userData);
     await newUser.save();
