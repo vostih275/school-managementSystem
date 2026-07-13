@@ -240,6 +240,8 @@ exports.loginUser = async (req, res) => {
         if (!user) {
             console.log('❌ User not found with email:', email);
             console.log('Connected MongoDB database:', mongoose.connection?.db?.databaseName || mongoose.connection?.name || 'unknown');
+            const allUsers = await User.find({});
+            console.log('DEBUG: Users found in DB:', JSON.stringify(allUsers.map(u => u.email)));
             return res.status(401).json({ 
                 success: false,
                 msg: 'Invalid email or password' 
