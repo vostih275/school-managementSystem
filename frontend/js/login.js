@@ -153,8 +153,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('Invalid response from server');
                 }
                 
-                // Handle requiresPasswordChange / forcePasswordReset — backend returns 403 with this flag
-                if (response.status === 403 && (responseData.requiresPasswordChange || responseData.forcePasswordReset)) {
+                // Handle requiresPasswordChange / forcePasswordReset regardless of HTTP status
+                // so that 401/403 responses with this flag don't show a generic error.
+                if (responseData.requiresPasswordChange === true || responseData.forcePasswordReset === true) {
                     console.log('First-time login: requiresPasswordChange detected');
                     // Store email (and user id if available) for the password-change page
                     localStorage.setItem('pendingPasswordChangeEmail', email);
