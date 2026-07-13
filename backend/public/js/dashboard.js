@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const eventCountEl = document.getElementById('event-count');
 
         try {
-            const res = await authFetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/stats');
+            const res = await authFetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/stats');
             const stats = await res.json();
             studentCountEl.innerText = stats.students;
             teacherCountEl.innerText = stats.teachers;
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to fetch users (teachers, students, etc.) and display them
     async function fetchUsers() {
         try {
-            const res = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/auth/signup', {
+            const res = await fetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/users', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         userAddMsg.style.display = 'none';
 
         try {
-            const res = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/auth/signup', {
+            const res = await fetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/users', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to fetch accounts
     async function fetchAccounts() {
         try {
-            const res = await authFetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/accounts');
+            const res = await authFetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/accounts');
             const accounts = await res.json();
 
             const accountList = document.getElementById('account-list');
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 try {
-                    const res = await authFetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/clubs', {
+                    const res = await authFetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/clubs', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name, advisor })
@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fetch library books
     async function fetchBooks() {
         try {
-            const res = await authFetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/library/books');
+            const res = await authFetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/library/books');
             const books = await res.json();
 
             const bookList = document.getElementById('book-list');
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const res = await authFetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/events', {
+                const res = await authFetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/events', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchEvents() {
         try {
-            const res = await authFetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/events');
+            const res = await authFetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/events');
             const events = await res.json();
             console.log('Events fetched:', events);
 
@@ -343,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to fetch clubs and update the list
     async function fetchClubs() {
         try {
-            const res = await authFetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/clubs');
+            const res = await authFetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/clubs');
             const clubs = await res.json();
             console.log('Clubs fetched:', clubs);
 
@@ -373,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const res = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/clubs', {
+            const res = await fetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/clubs', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const role = document.getElementById('teacher-role').value;
 
         try {
-            const res = await authFetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/users/teachers', {
+            const res = await authFetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/users', {
                 method: 'POST',
                 body: JSON.stringify({ name, subject, role }),
             });
@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const role = document.getElementById('student-role').value;
 
         try {
-            const res = await authFetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/users/students', {
+            const res = await authFetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/users', {
                 method: 'POST',
                 body: JSON.stringify({ name, studentClass, role }),
             });
@@ -456,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const message = document.getElementById('broadcast-message').value;
 
         try {
-            const res = await authFetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/broadcast', {
+            const res = await authFetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/broadcast', {
                 method: 'POST',
                 body: JSON.stringify({ target, title, message })
             });
@@ -481,7 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Simulated backup
     document.getElementById('backup-btn')?.addEventListener('click', () => {
-        window.location.href = '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/backup/download';
+        window.location.href = (window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/backup/download';
     });
 
     // Initialize

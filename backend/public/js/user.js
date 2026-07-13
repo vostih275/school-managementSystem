@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const password = document.getElementById("teacher-password").value;
 
         try {
-            const res = await fetch("(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/auth/signup", {
+            const res = await fetch(`${(window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com')}/api/users`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const password = document.getElementById("student-password").value;
 
         try {
-            const res = await fetch("(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/auth/signup", {
+            const res = await fetch(`${(window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com')}/api/users`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Fetch & render user lists (corrected)
     async function fetchAndRenderUsers() {
         try {
-            const res = await fetch("(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/users", {
+            const res = await fetch(`${(window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com')}/api/users`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
