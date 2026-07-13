@@ -306,6 +306,40 @@ exports.loginUser = async (req, res) => {
     }
 };
 
+// TEMPORARY: Force-set a user's password and require password change on next login
+exports.forceSetPassword = async (req, res) => {
+    try {
+        const email = (req.params.email || '').toLowerCase().trim();
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Email is required' });
+        }
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const newPassword = 'Temporary123!';
+        user.password = newPassword;
+        user.requiresPasswordChange = true;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: `Password for ${email} has been reset to ${newPassword}. User must change it on next login.`,
+            user: {
+                id: user._id,
+                email: user.email,
+                role: user.role,
+                requiresPasswordChange: user.requiresPasswordChange
+            }
+        });
+    } catch (err) {
+        console.error('forceSetPassword error:', err);
+        res.status(500).json({ success: false, message: 'Server error while resetting password' });
+    }
+};
+
 // Get User Profile
 exports.getUserProfile = async (req, res) => {
     try {
