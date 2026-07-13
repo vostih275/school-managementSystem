@@ -59,7 +59,7 @@ async function handlePasswordReset(e) {
     try {
         const AUTH_URL = (window.API_CONFIG && window.API_CONFIG.AUTH_URL)
             ? window.API_CONFIG.AUTH_URL
-            : 'http://localhost:5000/api/auth';
+            : 'https://aic-school-system-c0j6.onrender.com/api/auth';
 
         const response = await fetch(`${AUTH_URL}/first-login-reset`, {
             method: 'POST',
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             try {
                 console.log('Attempting login with:', { email });
-                const API_URL = (window.API_CONFIG || {}).AUTH_URL || `${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/auth`;
+                const API_URL = (window.API_CONFIG || {}).AUTH_URL || `${window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com'}/api/auth`;
                 const response = await fetch(`${API_URL}/login`, {
                     method: 'POST',
                     headers: {
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                const API_BASE_URL = window.API_CONFIG?.API_BASE_URL || `${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api`;
+                const API_BASE_URL = window.API_CONFIG?.API_BASE_URL || `${window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com'}/api`;
                 const response = await fetch(`${API_BASE_URL}/auth/register`, {
                     method: 'POST',
                     headers: {
