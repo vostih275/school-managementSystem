@@ -14,6 +14,22 @@ const generateTempPassword = () => {
     return `${process.env.SCHOOL_NAME || 'School'}@${year}-${random}`;
 };
 
+// Helper: locate a user by email or admission number
+const findUserByIdentifier = async (identifier) => {
+    const raw = (identifier || '').toString().trim();
+    if (!raw) return null;
+
+    if (raw.includes('@')) {
+        return await User.findOne({ email: raw.toLowerCase() });
+    }
+
+    // Treat as admission number (case-insensitive exact match)
+    const escaped = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return await User.findOne({
+        admissionNumber: { $regex: new RegExp(`^${escaped}$`, 'i') }
+    });
+};
+
 const standardizeClass = (classValue) => {
     if (!classValue) return '';
     const trimmed = classValue.trim();
@@ -45,15 +61,21 @@ exports.provisionUser = async (req, res) => {
     try {
         const { name, email, role = 'student', class: userClass, profile = {} } = req.body;
         const requester = req.user;
+        const normalizedRole = String(role).toLowerCase().trim();
 
-        if (!name || !email || !role) {
+        if (!name || !role) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide name, email, and role'
+                message: 'Please provide name and role'
             });
         }
 
-        const normalizedRole = String(role).toLowerCase().trim();
+        if (normalizedRole !== 'student' && !email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required for teachers, admins, and parents'
+            });
+        }
         const allowedRoles = ['student', 'teacher', 'admin', 'parent'];
         if (!allowedRoles.includes(normalizedRole)) {
             return res.status(400).json({
@@ -78,13 +100,30 @@ exports.provisionUser = async (req, res) => {
             });
         }
 
-        // Check for duplicate email
-        const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
-        if (existingUser) {
-            return res.status(400).json({
-                success: false,
-                message: 'A user with this email already exists'
+        const normalizedEmail = email ? email.toLowerCase().trim() : '';
+
+        // Check for duplicate email only when one is provided
+        if (normalizedEmail) {
+            const existingUser = await User.findOne({ email: normalizedEmail });
+            if (existingUser) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'A user with this email already exists'
+                });
+            }
+        }
+
+        // If an admission number was supplied, ensure it is not taken
+        if (req.body.admissionNumber) {
+            const existingAdmission = await User.findOne({
+                admissionNumber: req.body.admissionNumber.toString().trim()
             });
+            if (existingAdmission) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'A user with this admission number already exists'
+                });
+            }
         }
 
         let finalClass = '';
@@ -101,16 +140,20 @@ exports.provisionUser = async (req, res) => {
         const providedPassword = req.body.password ? String(req.body.password).trim() : '';
         const tempPassword = providedPassword || generateTempPassword();
 
-        console.log('Provisioning user with password:', providedPassword ? '(provided by admin)' : tempPassword, 'for email:', email.toLowerCase().trim());
+        console.log('Provisioning user with password:', providedPassword ? '(provided by admin)' : tempPassword, 'for email:', email ? email.toLowerCase().trim() : '(none)');
 
         const userData = {
             name,
-            email: email.toLowerCase().trim(),
+            email: normalizedEmail || (normalizedRole === 'student' ? undefined : ''),
             password: tempPassword,
             role: normalizedRole,
             requiresPasswordChange: true,
             profile: { ...profile }
         };
+
+        if (req.body.admissionNumber) {
+            userData.admissionNumber = req.body.admissionNumber.toString().trim();
+        }
 
         if (finalClass) {
             userData.class = finalClass;
@@ -127,7 +170,8 @@ exports.provisionUser = async (req, res) => {
             user: {
                 id: newUser._id,
                 name: newUser.name,
-                email: newUser.email,
+                email: newUser.email || undefined,
+                admissionNumber: newUser.admissionNumber || undefined,
                 role: newUser.role,
                 class: newUser.class || undefined,
                 requiresPasswordChange: newUser.requiresPasswordChange
@@ -149,12 +193,13 @@ exports.provisionUser = async (req, res) => {
 // First-login password reset
 exports.firstLoginReset = async (req, res) => {
     try {
-        const { email, tempPassword, newPassword } = req.body;
+        const identifier = (req.body.identifier || req.body.email || '').trim();
+        const { tempPassword, newPassword } = req.body;
 
-        if (!email || !tempPassword || !newPassword) {
+        if (!identifier || !tempPassword || !newPassword) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide email, temporary password, and new password'
+                message: 'Please provide identifier (email or admission number), temporary password, and new password'
             });
         }
 
@@ -165,14 +210,12 @@ exports.firstLoginReset = async (req, res) => {
             });
         }
 
-        const user = await User.findOne({
-            email: email.toLowerCase().trim()
-        });
+        const user = await findUserByIdentifier(identifier);
 
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid email or temporary password'
+                message: 'Invalid identifier or temporary password'
             });
         }
 
@@ -187,7 +230,7 @@ exports.firstLoginReset = async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid email or temporary password'
+                message: 'Invalid identifier or temporary password'
             });
         }
 
@@ -211,7 +254,8 @@ exports.firstLoginReset = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
-                email: user.email,
+                email: user.email || undefined,
+                admissionNumber: user.admissionNumber || undefined,
                 role: user.role
             }
         });
@@ -226,32 +270,28 @@ exports.loginUser = async (req, res) => {
     console.log('=== Login Request ===');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     
-    const email = (req.body.email || '').trim();
+    const identifier = (req.body.identifier || req.body.email || '').trim();
     const password = (req.body.password || '').trim();
-    if (!email || !password) {
-        console.log('Missing email or password');
+    if (!identifier || !password) {
+        console.log('Missing identifier or password');
         return res.status(400).json({ 
             success: false,
-            msg: 'Please provide both email and password' 
+            msg: 'Please provide both identifier and password' 
         });
     }
     
-    console.log('Login attempt for email:', email);
+    console.log('Login attempt for identifier:', identifier);
     
     try {
-        // Case insensitive exact email search
-        const user = await User.findOne({ 
-            email: email.toLowerCase().trim()
-        });
+        // Find user by email or admission number
+        const user = await findUserByIdentifier(identifier);
         
         if (!user) {
-            console.log('❌ User not found with email:', email);
+            console.log('❌ User not found with identifier:', identifier);
             console.log('Connected MongoDB database:', mongoose.connection?.db?.databaseName || mongoose.connection?.name || 'unknown');
-            const allUsers = await User.find({});
-            console.log('DEBUG: Users found in DB:', JSON.stringify(allUsers.map(u => u.email)));
             return res.status(401).json({ 
                 success: false,
-                msg: 'Invalid email or password' 
+                msg: 'Invalid identifier or password' 
             });
         }
         console.log('User found:', { id: user.id, role: user.role, requiresPasswordChange: user.requiresPasswordChange });
@@ -259,7 +299,7 @@ exports.loginUser = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             console.log('Password does not match');
-            return res.status(401).json({ success: false, msg: "Invalid email or password" });
+            return res.status(401).json({ success: false, msg: "Invalid identifier or password" });
         }
         console.log('Password matches');
         console.log('User role:', user.role);
@@ -270,6 +310,8 @@ exports.loginUser = async (req, res) => {
             return res.status(403).json({
                 success: false,
                 forcePasswordReset: true,
+                userId: user._id,
+                identifier: user.email || user.admissionNumber || '',
                 message: 'You must reset your temporary password before logging in. Use POST /api/auth/first-login-reset.'
             });
         }
@@ -294,7 +336,8 @@ exports.loginUser = async (req, res) => {
         // Prepare user data (exclude sensitive info)
         const userData = {
             id: user._id,
-            email: user.email,
+            email: user.email || undefined,
+            admissionNumber: user.admissionNumber || undefined,
             role: user.role,
             name: user.name || ''
         };
@@ -316,12 +359,12 @@ exports.loginUser = async (req, res) => {
 // TEMPORARY: Force-set a user's password and require password change on next login
 exports.forceSetPassword = async (req, res) => {
     try {
-        const email = (req.params.email || '').toLowerCase().trim();
-        if (!email) {
-            return res.status(400).json({ success: false, message: 'Email is required' });
+        const identifier = (req.params.identifier || req.params.email || '').trim();
+        if (!identifier) {
+            return res.status(400).json({ success: false, message: 'Email or admission number is required' });
         }
 
-        const user = await User.findOne({ email });
+        const user = await findUserByIdentifier(identifier);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
@@ -333,10 +376,11 @@ exports.forceSetPassword = async (req, res) => {
 
         res.json({
             success: true,
-            message: `Password for ${email} has been reset to ${newPassword}. User must change it on next login.`,
+            message: `Password for ${identifier} has been reset to ${newPassword}. User must change it on next login.`,
             user: {
                 id: user._id,
-                email: user.email,
+                email: user.email || undefined,
+                admissionNumber: user.admissionNumber || undefined,
                 role: user.role,
                 requiresPasswordChange: user.requiresPasswordChange
             }

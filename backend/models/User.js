@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { getNextAdmissionNumber } = require('./Counter');
 
 // Validate class format for CBC Primary and Junior Secondary (PP1, PP2, Grade 1-9)
 const validateClass = (value) => {
@@ -9,7 +10,16 @@ const validateClass = (value) => {
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  email: {
+    type: String,
+    required: function() {
+      // Students may log in with admission number; email is required for all other roles
+      return this.role !== 'student';
+    },
+    lowercase: true,
+    trim: true
+  },
+  admissionNumber: { type: String, trim: true },
   password: { type: String, required: true },
   role: { 
     type: String, 
@@ -40,6 +50,7 @@ const userSchema = new mongoose.Schema({
     dob: Date,
     gender: String,
     address: String,
+    phone: { type: String, trim: true },
     class: { type: String, default: '' }, // Ensure class is defined in profile
     specialization: String,
     subjects: [String],
@@ -72,6 +83,24 @@ const userSchema = new mongoose.Schema({
 });
 
 // Pre-save hook to keep class in sync between root and profile
+userSchema.pre('save', async function(next) {
+  // Auto-generate admission number for new students
+  if (this.isNew && this.role === 'student' && !this.admissionNumber) {
+    try {
+      this.admissionNumber = await getNextAdmissionNumber();
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  // Convert blank/empty emails to undefined to avoid unique-index collisions
+  if (this.email !== undefined && this.email !== null && String(this.email).trim() === '') {
+    this.email = undefined;
+  }
+
+  next();
+});
+
 userSchema.pre('save', function(next) {
   console.log('Pre-save hook - Current class data:', {
     rootClass: this.class,
@@ -129,5 +158,22 @@ userSchema.pre('save', async function(next) {
 userSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+// Partial unique index for email: only enforces uniqueness when email is a non-empty string
+userSchema.index(
+  { email: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      email: { $type: 'string', $gt: '' }
+    }
+  }
+);
+
+// Sparse unique index for admission numbers (only students have them)
+userSchema.index(
+  { admissionNumber: 1 },
+  { unique: true, sparse: true }
+);
 
 module.exports = mongoose.models.User || mongoose.model('User', userSchema, 'users');

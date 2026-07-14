@@ -42,28 +42,51 @@ exports.getAllUsers = async (req, res) => {
 
 // Create a new user (teacher/student)
 exports.createUser = async (req, res) => {
-  const { name, email, password, role, subject, studentClass } = req.body;
+  const { name, email, password, role, subject, studentClass, admissionNumber } = req.body;
 
-  // Normalize email for consistent lookup and storage
-  const normalizedEmail = (email || '').toLowerCase().trim();
+  const normalizedRole = role ? role.toLowerCase() : 'student';
+
+  // Normalize email only if provided; students may use admission number instead
+  const normalizedEmail = email ? email.toLowerCase().trim() : '';
+
+  if (normalizedRole !== 'student' && !normalizedEmail) {
+    return res.status(400).json({ message: 'Email is required for teachers, admins, and parents' });
+  }
 
   // Default temporary password if admin does not provide one
   const plainPassword = password && password.trim() ? password.trim() : 'Welcome123!';
 
   try {
-    const existingUser = await User.findOne({ email: normalizedEmail });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User with this email already exists' });
+    // Check for duplicate email only when one is provided
+    if (normalizedEmail) {
+      const existingUser = await User.findOne({ email: normalizedEmail });
+      if (existingUser) {
+        return res.status(400).json({ message: 'User with this email already exists' });
+      }
+    }
+
+    // If an admission number was supplied, ensure it is not taken
+    if (admissionNumber) {
+      const existingAdmission = await User.findOne({
+        admissionNumber: admissionNumber.toString().trim()
+      });
+      if (existingAdmission) {
+        return res.status(400).json({ message: 'A user with this admission number already exists' });
+      }
     }
 
     const userData = {
       name,
-      email: normalizedEmail,
+      email: normalizedEmail || (normalizedRole === 'student' ? undefined : ''),
       password: plainPassword,
-      role: role ? role.toLowerCase() : 'student',
+      role: normalizedRole,
       requiresPasswordChange: true,
       profile: {}
     };
+
+    if (admissionNumber) {
+      userData.admissionNumber = admissionNumber.toString().trim();
+    }
 
     if (userData.role === 'teacher' && subject) {
       userData.profile.subjects = Array.isArray(subject) ? subject : [subject];

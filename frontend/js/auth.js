@@ -5,7 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
         loginForm.onsubmit = async (e) => {
             e.preventDefault();
             
-            const email = loginForm.querySelector('#email').value;
+            const identifierInput = loginForm.querySelector('#identifier') || loginForm.querySelector('#email');
+            const identifier = (identifierInput?.value || '').trim();
             const password = loginForm.querySelector('#password').value;
 
             try {
@@ -14,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ identifier, password })
                 });
 
                 const data = await response.json();
@@ -28,7 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // If the user must change their temporary password, redirect to the password update page
                 if (response.status === 403 && (data.requiresPasswordChange || data.forcePasswordReset)) {
-                    localStorage.setItem('pendingPasswordChangeEmail', email);
+                    const pendingIdentifier = data.identifier || data.user?.email || data.user?.admissionNumber || identifier;
+                    localStorage.setItem('pendingPasswordChangeIdentifier', pendingIdentifier);
+                    // Keep legacy key for older pages
+                    localStorage.setItem('pendingPasswordChangeEmail', pendingIdentifier);
                     if (data.userId || (data.user && data.user.id)) {
                         localStorage.setItem('pendingPasswordChangeUserId', data.userId || data.user.id);
                     }

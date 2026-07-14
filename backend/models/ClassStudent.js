@@ -6,7 +6,8 @@ const getClassStudentModel = (className) => {
     const schema = new mongoose.Schema({
         studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         name: { type: String, required: true },
-        email: { type: String, required: true },
+        email: { type: String, required: false },
+        admissionNumber: { type: String, required: false },
         class: { type: String, required: true },
         createdAt: { type: Date, default: Date.now },
         updatedAt: { type: Date, default: Date.now }

@@ -32,7 +32,7 @@ function showError(message, elementId = 'error-message') {
 async function handlePasswordReset(e) {
     e.preventDefault();
 
-    const email           = document.getElementById('reset-email')?.value?.trim();
+    const identifier      = document.getElementById('reset-identifier')?.value?.trim();
     const tempPassword    = document.getElementById('reset-temp-password')?.value;
     const newPassword     = document.getElementById('reset-new-password')?.value;
     const confirmPassword = document.getElementById('reset-confirm-password')?.value;
@@ -43,7 +43,7 @@ async function handlePasswordReset(e) {
         if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; }
     };
 
-    if (!email || !tempPassword || !newPassword || !confirmPassword) {
+    if (!identifier || !tempPassword || !newPassword || !confirmPassword) {
         return showResetError('Please fill in all fields.');
     }
     if (newPassword.length < 6) {
@@ -64,7 +64,7 @@ async function handlePasswordReset(e) {
         const response = await fetch(`${AUTH_URL}/first-login-reset`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, tempPassword, newPassword })
+            body: JSON.stringify({ identifier, tempPassword, newPassword })
         });
 
         const data = await response.json();
@@ -104,10 +104,10 @@ document.addEventListener('DOMContentLoaded', function() {
         loginForm.style.display = 'none';
         resetForm.style.display = 'block';
         if (formTitle) formTitle.textContent = 'Set Your Password';
-        const pendingEmail = localStorage.getItem('pendingPasswordChangeEmail');
-        if (pendingEmail) {
-            const resetEmailInput = document.getElementById('reset-email');
-            if (resetEmailInput) resetEmailInput.value = pendingEmail;
+        const pendingIdentifier = localStorage.getItem('pendingPasswordChangeIdentifier') || localStorage.getItem('pendingPasswordChangeEmail');
+        if (pendingIdentifier) {
+            const resetIdentifierInput = document.getElementById('reset-identifier');
+            if (resetIdentifierInput) resetIdentifierInput.value = pendingIdentifier;
         }
     }
 
@@ -121,16 +121,16 @@ document.addEventListener('DOMContentLoaded', function() {
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const email = document.getElementById('login-email')?.value;
+            const identifier = document.getElementById('login-identifier')?.value?.trim();
             const password = document.getElementById('login-password')?.value;
             
-            if (!email || !password) {
-                showError('Please enter both email and password');
+            if (!identifier || !password) {
+                showError('Please enter both identifier and password');
                 return;
             }
 
             try {
-                console.log('Attempting login with:', { email });
+                console.log('Attempting login with:', { identifier });
                 const API_URL = (window.API_CONFIG || {}).AUTH_URL || `${window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com'}/api/auth`;
                 const response = await fetch(`${API_URL}/login`, {
                     method: 'POST',
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         'Accept': 'application/json',
                         'Origin': window.location.origin
                     },
-                    body: JSON.stringify({ email, password }),
+                    body: JSON.stringify({ identifier, password }),
                     credentials: 'include'
                 });
                 
@@ -157,8 +157,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // so that 401/403 responses with this flag don't show a generic error.
                 if (responseData.requiresPasswordChange === true || responseData.forcePasswordReset === true) {
                     console.log('First-time login: requiresPasswordChange detected');
-                    // Store email (and user id if available) for the password-change page
-                    localStorage.setItem('pendingPasswordChangeEmail', email);
+                    // Store identifier (and user id if available) for the password-change page
+                    localStorage.setItem('pendingPasswordChangeIdentifier', responseData.identifier || responseData.user?.email || responseData.user?.admissionNumber || identifier);
                     if (responseData.userId || (responseData.user && responseData.user.id)) {
                         localStorage.setItem('pendingPasswordChangeUserId', responseData.userId || responseData.user.id);
                     }
@@ -226,17 +226,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Show/hide class field based on role selection
+    // Show/hide role-specific fields
+    const registerEmailGroup = document.getElementById('register-email-group');
+    const registerPhoneGroup = document.getElementById('register-phone-group');
+    const registerEmailInput = document.getElementById('register-email');
+    const registerPhoneInput = document.getElementById('register-phone');
+
     if (roleSelect && classGroup) {
         roleSelect.addEventListener('change', function() {
             if (this.value === 'student') {
                 classGroup.style.display = 'block';
                 const classInput = document.getElementById('class');
                 if (classInput) classInput.setAttribute('required', 'required');
+                // Email and phone are optional for students
+                if (registerEmailGroup) registerEmailGroup.style.display = 'block';
+                if (registerPhoneGroup) registerPhoneGroup.style.display = 'block';
+                if (registerEmailInput) registerEmailInput.removeAttribute('required');
+                if (registerPhoneInput) registerPhoneInput.removeAttribute('required');
             } else {
                 classGroup.style.display = 'none';
                 const classInput = document.getElementById('class');
                 if (classInput) classInput.removeAttribute('required');
+                // Email is required for non-students
+                if (registerEmailGroup) registerEmailGroup.style.display = 'block';
+                if (registerPhoneGroup) registerPhoneGroup.style.display = 'none';
+                if (registerEmailInput) registerEmailInput.setAttribute('required', 'required');
+                if (registerPhoneInput) registerPhoneInput.removeAttribute('required');
             }
         });
     }

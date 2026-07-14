@@ -485,6 +485,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             
             document.getElementById("student-email").value = userData.email || "";
+
+            const admissionNumberInput = document.getElementById("student-admission-number");
+            if (admissionNumberInput) admissionNumberInput.value = userData.admissionNumber || "";
+
+            const phoneInput = document.getElementById("student-phone");
+            if (phoneInput) phoneInput.value = userData.profile?.phone || "";
             
             // Set the class in the profile form if the element exists
             const classInput = document.getElementById("profile-student-class");
@@ -547,6 +553,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById("student-email").value = userData.email || "";
                 document.getElementById("profile-student-class").value = cachedClass;
                 document.getElementById("student-grade").value = cachedClass;
+                const admissionNumberInput = document.getElementById("student-admission-number");
+                if (admissionNumberInput) admissionNumberInput.value = userData.admissionNumber || "";
+                const phoneInput = document.getElementById("student-phone");
+                if (phoneInput) phoneInput.value = userData.profile?.phone || "";
             }
         }
     }
@@ -568,6 +578,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const formData = {
                 name: document.getElementById('student-name').value,
                 email: document.getElementById('student-email').value,
+                phone: document.getElementById('student-phone')?.value || '',
                 profile: {
                     ...(cachedProfile.profile || {}), // Include existing profile data
                     photo: cachedProfile.profile?.photo || ''

@@ -38,23 +38,37 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         const name = document.getElementById("student-name").value;
         const role = document.getElementById("student-role").value.toLowerCase(); // 'student'
-        const studentClass = document.getElementById("student-class").value;
-        const email = document.getElementById("student-email").value;
-        const password = document.getElementById("student-password").value;
+        const studentClass = document.getElementById("student-class")?.value;
+        const email = document.getElementById("student-email")?.value;
+        const password = document.getElementById("student-password")?.value;
+
+        if (!name) {
+            alert("Student name is required");
+            return;
+        }
 
         try {
+            const payload = {
+                name,
+                role,
+                studentClass,
+                ...(email && { email }),
+                ...(password && { password })
+            };
+
             const res = await fetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + "/api/users", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ name, email, password, role, studentClass })
+                body: JSON.stringify(payload)
             });
 
             const data = await res.json();
             if (res.ok) {
-                alert("Student added!");
+                const admissionInfo = data.user?.admissionNumber ? ` (Admission: ${data.user.admissionNumber})` : '';
+                alert(`Student added!${admissionInfo}`);
                 fetchAndRenderUsers();
             } else {
                 alert(data.message || "Error adding student");
@@ -82,7 +96,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             users.forEach(user => {
                 const li = document.createElement("li");
-                li.textContent = `${user.name} (${user.email})`;
+                const userIdentifier = user.admissionNumber || user.email || 'N/A';
+                li.textContent = `${user.name} (${userIdentifier})`;
 
                 if (user.role === "teacher" || user.role === "admin") {
                     teacherList.appendChild(li);

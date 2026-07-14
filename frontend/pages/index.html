@@ -1340,9 +1340,9 @@
                                 <option value="Other">Other</option>
                             </select>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="email-group">
                             <label for="email">Email:</label>
-                            <input type="email" id="email" name="email" placeholder="Enter email" required>
+                            <input type="email" id="email" name="email" placeholder="Enter email">
                         </div>
                         <div class="form-group">
                             <label for="password">Password:</label>
@@ -1363,9 +1363,13 @@
                             </div>
                             <small id="password-match-error" style="color: red; display: none;">Passwords do not match</small>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="phone-group">
                             <label for="phone">Phone:</label>
-                            <input type="tel" id="phone" name="phone" placeholder="Enter phone number" required>
+                            <input type="tel" id="phone" name="phone" placeholder="Enter phone number">
+                        </div>
+                        <div class="form-group" id="admission-number-group" style="display: none;">
+                            <label for="admission-number">Admission Number:</label>
+                            <input type="text" id="admission-number" name="admissionNumber" placeholder="Auto-generated" readonly>
                         </div>
                         <div class="form-group">
                             <label for="address">Address:</label>
@@ -2498,14 +2502,23 @@
                         <label for="className">Class *</label>
                         <select id="className" name="className" required>
                             <option value="">Select Class</option>
-                            <option value="Form 1A">Form 1A</option>
-                            <option value="Form 1B">Form 1B</option>
-                            <option value="Form 2A">Form 2A</option>
-                            <option value="Form 2B">Form 2B</option>
-                            <option value="Form 3A">Form 3A</option>
-                            <option value="Form 3B">Form 3B</option>
-                            <option value="Form 4A">Form 4A</option>
-                            <option value="Form 4B">Form 4B</option>
+                            <optgroup label="Pre-Primary">
+                                <option value="PP1">PP1</option>
+                                <option value="PP2">PP2</option>
+                            </optgroup>
+                            <optgroup label="Primary (Grade 1-6)">
+                                <option value="Grade 1">Grade 1</option>
+                                <option value="Grade 2">Grade 2</option>
+                                <option value="Grade 3">Grade 3</option>
+                                <option value="Grade 4">Grade 4</option>
+                                <option value="Grade 5">Grade 5</option>
+                                <option value="Grade 6">Grade 6</option>
+                            </optgroup>
+                            <optgroup label="Junior Secondary (Grade 7-9)">
+                                <option value="Grade 7">Grade 7</option>
+                                <option value="Grade 8">Grade 8</option>
+                                <option value="Grade 9">Grade 9</option>
+                            </optgroup>
                         </select>
                     </div>
                 </div>
@@ -2807,8 +2820,12 @@
                 const title = userType === 'teacher' ? 'Teacher Registration' : 'Student Registration';
                 modalTitle.textContent = title;
                 
-                // Show/hide fields based on user type
+                // Show/hide and require fields based on user type
                 const studentClassSelect = document.getElementById('student-class');
+                const emailInput = document.getElementById('email');
+                const phoneInput = document.getElementById('phone');
+                const admissionGroup = document.getElementById('admission-number-group');
+
                 if (userType === 'teacher') {
                     teacherFields.style.display = 'block';
                     classSelection.style.display = 'none';
@@ -2816,6 +2833,10 @@
                     if (studentClassSelect) {
                         studentClassSelect.removeAttribute('required');
                     }
+                    // Email required for teachers; phone optional
+                    if (emailInput) emailInput.setAttribute('required', 'required');
+                    if (phoneInput) phoneInput.removeAttribute('required');
+                    if (admissionGroup) admissionGroup.style.display = 'none';
                 } else {
                     teacherFields.style.display = 'none';
                     classSelection.style.display = 'block';
@@ -2823,6 +2844,10 @@
                     if (studentClassSelect) {
                         studentClassSelect.setAttribute('required', 'required');
                     }
+                    // Email and phone are optional for students
+                    if (emailInput) emailInput.removeAttribute('required');
+                    if (phoneInput) phoneInput.removeAttribute('required');
+                    if (admissionGroup) admissionGroup.style.display = 'block';
                     // Fetch and populate classes for students
                     fetchAndPopulateClasses();
                 }
@@ -2929,12 +2954,17 @@
                 const email = formData.get('email');
                 
                 // Basic validation
-                if (!name || !email || !password) {
-                    throw new Error('Name, email, and password are required');
+                if (!name || !password) {
+                    throw new Error('Name and password are required');
+                }
+
+                // Email is required for teachers, optional for students
+                if (currentUserType !== 'student' && !email) {
+                    throw new Error('Email is required for teachers');
                 }
                 
-                // Validate email format
-                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                // Validate email format only when provided
+                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                     throw new Error('Please enter a valid email address');
                 }
 
@@ -2975,14 +3005,14 @@
                 // Prepare provisioning payload (send provided password)
                 const provisionData = {
                     name: formData.get('name'),
-                    email: formData.get('email'),
+                    email: formData.get('email') || undefined,
                     password: password,
                     role: currentUserType,
                     ...(currentUserType === 'student' && { class: displayClass || studentClass }),
                     profile: {
                         dob: formData.get('dob'),
                         gender: formData.get('gender'),
-                        phone: formData.get('phone'),
+                        phone: formData.get('phone') || undefined,
                         address: formData.get('address'),
                         bloodGroup: formData.get('blood-group'),
                         emergencyContact: {
@@ -3016,10 +3046,11 @@
                     throw new Error(data.message || 'Provisioning failed');
                 }
                 
-                // Display the temporary password to the admin — they must hand this off securely
+                // Display the temporary password and admission number to the admin — they must hand this off securely
                 const roleLabel = currentUserType === 'teacher' ? 'Teacher' : 'Student';
+                const admissionInfo = data.user.admissionNumber ? `\nAdmission Number: ${data.user.admissionNumber}` : '';
                 showToast(
-                    `${roleLabel} "${data.user.name}" created.\nTemp password: ${data.tempPassword}\n(Share securely — user must change on first login.)`,
+                    `${roleLabel} "${data.user.name}" created.${admissionInfo}\nTemp password: ${data.tempPassword}\n(Share securely — user must change on first login.)`,
                     'success'
                 );
                 
@@ -3858,87 +3889,6 @@
             }
         };
         
-        // Handle form submission
-
-        // Handle form submission
-        document.getElementById('registration-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const userType = document.getElementById('modal-title').textContent.includes('Teacher') ? 'teacher' : 'student';
-            const formData = new FormData(this);
-            
-            // Add user type to form data
-            formData.append('userType', userType);
-            
-            try {
-                // Convert FormData to object
-                const userData = Object.fromEntries(formData);
-                
-                // Validate required fields
-                if (!userData.name || !userData.email) {
-                    throw new Error('Please fill in all required fields: name and email');
-                }
-
-                // Build provision payload (no password — backend generates temp)
-                const provisionPayload = {
-                    name: userData.name,
-                    email: userData.email,
-                    role: userType,
-                    ...(userData.class && { class: userData.class }),
-                    profile: { phone: userData.phone || '' }
-                };
-
-                console.log('Provisioning user:', provisionPayload);
-
-                const response = await fetch(`${window.API_CONFIG?.API_BASE_URL || 'http://localhost:5000/api'}/users/provision`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify(provisionPayload)
-                });
-
-                const result = await response.json();
-                
-                if (response.ok) {
-                    const roleLabel = userType === 'teacher' ? 'Teacher' : 'Student';
-                    showToast(
-                        `${roleLabel} "${result.user.name}" created.\nTemp password: ${result.tempPassword}\n(Share securely — user must change on first login.)`,
-                        'success'
-                    );
-                    closeRegistrationModal();
-                    loadDashboardData();
-                } else {
-                    throw new Error(result.message || 'Provisioning failed');
-                }
-            } catch (error) {
-                console.error('Registration error:', error);
-                showToast(error.message || 'Registration failed. Please try again.', 'error');
-            } finally {
-                // Re-enable the submit button
-                const submitBtn = e.target.querySelector('button[type="submit"]');
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                }
-            }
-
-        // Update fields based on role selection
-        function updateFields() {
-            const roleSelect = document.getElementById('role-select');
-            const teacherFields = document.getElementById('teacher-fields');
-            
-            if (roleSelect && teacherFields) {
-                teacherFields.style.display = roleSelect.value === 'teacher' ? 'block' : 'none';
-            }
-        }
-
-        // Add event listener for role selection
-        const roleSelect = document.getElementById('role-select');
-        if (roleSelect) {
-            roleSelect.addEventListener('change', updateFields);
-            updateFields();
-        }
     </script>
     <script src="/js/admin.js"></script>
     <script src="/js/clubs.js"></script>

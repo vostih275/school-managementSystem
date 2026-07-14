@@ -8,7 +8,7 @@ exports.updateProfile = async (req, res) => {
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     console.log('User from token:', req.user);
     
-    const { name, email, subjects, photo } = req.body;
+    const { name, email, subjects, photo, phone } = req.body;
 
     // Log received data
     console.log('Processing update for user ID:', req.user.id);
@@ -26,7 +26,16 @@ exports.updateProfile = async (req, res) => {
     // Update user information
     console.log('Updating user fields...');
     user.name = name || user.name;
-    user.email = (email || user.email).toLowerCase().trim();
+
+    // Update email only if a non-empty value is provided; for students, allow clearing it
+    if (email !== undefined) {
+        const trimmedEmail = String(email).trim();
+        if (trimmedEmail) {
+            user.email = trimmedEmail.toLowerCase();
+        } else if (user.role === 'student') {
+            user.email = undefined;
+        }
+    }
     
     // Initialize profile if it doesn't exist
     user.profile = user.profile || {};
@@ -36,7 +45,12 @@ exports.updateProfile = async (req, res) => {
       console.log('Updating subjects:', subjects);
       user.profile.subjects = Array.isArray(subjects) ? subjects : [subjects].filter(Boolean);
     }
-    
+
+    if (phone !== undefined) {
+      console.log('Updating phone:', phone);
+      user.profile.phone = String(phone).trim() || undefined;
+    }
+
     if (photo !== undefined) {
       console.log('Updating photo');
       user.profile.photo = photo;
