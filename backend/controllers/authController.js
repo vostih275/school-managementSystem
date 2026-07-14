@@ -94,7 +94,10 @@ exports.provisionUser = async (req, res) => {
             }
         }
 
-        const tempPassword = generateTempPassword();
+        const providedPassword = req.body.password ? String(req.body.password).trim() : '';
+        const tempPassword = providedPassword || generateTempPassword();
+
+        console.log('Provisioning user with password:', providedPassword ? '(provided by admin)' : tempPassword, 'for email:', email.toLowerCase().trim());
 
         const userData = {
             name,

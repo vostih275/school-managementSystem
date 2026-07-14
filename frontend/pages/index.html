@@ -2951,13 +2951,22 @@
                 const email = formData.get('email');
                 
                 // Basic validation
-                if (!name || !email) {
-                    throw new Error('Name and email are required');
+                if (!name || !email || !password) {
+                    throw new Error('Name, email, and password are required');
                 }
                 
                 // Validate email format
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                     throw new Error('Please enter a valid email address');
+                }
+
+                // Validate password and confirm password match
+                if (password !== confirmPassword) {
+                    throw new Error('Passwords do not match');
+                }
+
+                if (password.length < 6) {
+                    throw new Error('Password must be at least 6 characters');
                 }
                 
                 // Disable submit button and show loading state
@@ -2985,10 +2994,11 @@
                     }
                 }
                 
-                // Prepare provisioning payload (no password — backend generates temp)
+                // Prepare provisioning payload (send provided password)
                 const provisionData = {
                     name: formData.get('name'),
                     email: formData.get('email'),
+                    password: password,
                     role: currentUserType,
                     ...(currentUserType === 'student' && { class: displayClass || studentClass }),
                     profile: {
