@@ -1,4 +1,6 @@
 // API Configuration - Using relative URLs for local development
+console.log('[CONFIG] Loading config.js...');
+
 const API_CONFIG = (() => {
     // Check if we're running in development or production
     const isProduction = window.location.hostname !== 'localhost' && !window.location.hostname.startsWith('127.');
@@ -39,6 +41,7 @@ const API_CONFIG = (() => {
 
 // Make it available globally
 window.API_CONFIG = API_CONFIG;
+console.log('[CONFIG] API_CONFIG set:', window.API_CONFIG);
 
 // Safe localStorage wrapper to handle tracking prevention
 const safeStorage = {

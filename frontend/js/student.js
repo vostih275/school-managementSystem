@@ -451,7 +451,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         try {
-            const API = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL) ? window.API_CONFIG.API_BASE_URL : 'http://localhost:5000/api';
+            const API = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
+            console.log('[fetchUserProfile] Using API URL:', API);
             const response = await fetch(`${API}/users/me`, {
                 method: "GET",
                 headers: {
@@ -590,7 +591,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             
             try {
-                const _api = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL) ? window.API_CONFIG.API_BASE_URL : 'http://localhost:5000/api';
+                const _api = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
+                console.log('[fetchGrades] Using API URL:', _api);
                 const response = await fetch(`${_api}/students/profile`, {
                     method: 'PUT',
                     headers: {
@@ -647,7 +649,7 @@ document.addEventListener('DOMContentLoaded', function () {
             formData.append('photo', file);
             
             try {
-                const _apiP = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL) ? window.API_CONFIG.API_BASE_URL : 'http://localhost:5000/api';
+                const _apiP = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
                 const response = await fetch(`${_apiP}/students/profile/photo`, {
                     method: 'POST',
                     headers: {
@@ -708,7 +710,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         try {
-            const _apiA = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL) ? window.API_CONFIG.API_BASE_URL : 'http://localhost:5000/api';
+            const _apiA = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
             const response = await fetch(`${_apiA}/assignments`, {
                 method: "GET",
                 headers: {
@@ -761,7 +763,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       try {
         // Make GET request to fetch announcements
-        const _apiAnn = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL) ? window.API_CONFIG.API_BASE_URL : 'http://localhost:5000/api';
+        const _apiAnn = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
         const response = await fetch(`${_apiAnn}/announcements`, {
           method: "GET",
           headers: {
@@ -821,7 +823,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       try {
-        const _apiRes = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL) ? window.API_CONFIG.API_BASE_URL : 'http://localhost:5000/api';
+        const _apiRes = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
         const response = await fetch(`${_apiRes}/resources`, {
           method: "GET",
           headers: {
@@ -850,7 +852,7 @@ document.addEventListener('DOMContentLoaded', function () {
           const li = document.createElement("li");
           const link = document.createElement("a");
 
-          const _base = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
+          const _base = window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com';
           link.href = `${_base}/uploads/resources/${resource.path}`;
           link.textContent = resource.name;
           link.setAttribute('download', resource.name);
@@ -888,7 +890,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             
             // Fetch all fees with payments included
-            const _apiFee = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL) ? window.API_CONFIG.API_BASE_URL : 'http://localhost:5000/api';
+            const _apiFee = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
             const response = await fetch(`${_apiFee}/fees?populate=payments`, {
                 method: 'GET',
                 headers: {
@@ -1471,7 +1473,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
                 
-                const _apiFee2 = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL) ? window.API_CONFIG.API_BASE_URL : 'http://localhost:5000/api';
+                const _apiFee2 = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
                 const response = await fetch(`${_apiFee2}/fees?populate=payments`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1738,7 +1740,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const token = localStorage.getItem("token");
             if (!token) throw new Error("No authentication token found");
 
-            const _apiHw = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL) ? window.API_CONFIG.API_BASE_URL : 'http://localhost:5000/api';
+            const _apiHw = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
             const response = await fetch(`${_apiHw}/homeworks`, {
                 headers: {
                     "Authorization": `Bearer ${token}`,
@@ -1828,7 +1830,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         ${homework.file ? `
                             <div class="homework-file">
                                 <i class="bi bi-paperclip"></i>
-                                <a href="${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}${homework.file}" target="_blank" class="file-link">
+                                <a href="${window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com'}${homework.file}" target="_blank" class="file-link">
                                     ${homework.file.split('/').pop()}
                                 </a>
                             </div>
@@ -1870,7 +1872,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         `}
                         
                         ${homework.file ? `
-                            <a href="${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}${homework.file}" class="btn btn-outline-primary" target="_blank">
+                            <a href="${window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com'}${homework.file}" class="btn btn-outline-primary" target="_blank">
                                 <i class="bi bi-download"></i> Download
                             </a>
                         ` : ''}
@@ -1990,7 +1992,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 type: file.type
             });
             
-            const _apiSub = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL) ? window.API_CONFIG.API_BASE_URL : 'http://localhost:5000/api';
+            const _apiSub = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
             const response = await fetch(`${_apiSub}/homeworks/submit/${homeworkId}`, {
                 method: 'POST',
                 headers: {
@@ -2061,9 +2063,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL)
-            ? window.API_CONFIG.API_BASE_URL
-            : 'http://localhost:5000/api';
+        const BASE = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
 
         try {
             const response = await fetch(`${BASE}/marks/student/${studentId}`, {
