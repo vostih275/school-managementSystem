@@ -341,6 +341,7 @@ exports.loginUser = async (req, res) => {
 
         // Prepare user data (exclude sensitive info)
         const userData = {
+            _id: user._id,
             id: user._id,
             email: user.email || undefined,
             admissionNumber: user.admissionNumber || undefined,
