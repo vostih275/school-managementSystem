@@ -104,18 +104,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // 7. Store any additional user data
                     if (userData) {
-                        localStorage.setItem('userData', JSON.stringify(userData));
-                        localStorage.setItem('user', JSON.stringify(userData));
+                        const storage = window.safeStorage || localStorage;
+                        storage.setItem('userData', JSON.stringify(userData));
+                        storage.setItem('user', JSON.stringify(userData));
                         console.log('Stored user data in localStorage');
                         // Save studentId for dashboard scripts
                         if (userData._id) {
-                            localStorage.setItem('studentId', userData._id);
+                            storage.setItem('studentId', userData._id);
                         }
                         if (userData.admissionNumber) {
-                            localStorage.setItem('admissionNumber', userData.admissionNumber);
+                            storage.setItem('admissionNumber', userData.admissionNumber);
                         }
                     }
-                    
+
                     // Redirect to appropriate dashboard
                     const role = localStorage.getItem('role');
                     console.log('Redirecting with role:', role);

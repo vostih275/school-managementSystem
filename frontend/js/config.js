@@ -2,7 +2,7 @@
 const API_CONFIG = (() => {
     // Check if we're running in development or production
     const isProduction = window.location.hostname !== 'localhost' && !window.location.hostname.startsWith('127.');
-    
+
     const PRODUCTION_BASE = 'https://aic-school-system-c0j6.onrender.com';
     const DEV_BASE = 'http://localhost:5000';
 
@@ -18,10 +18,10 @@ const API_CONFIG = (() => {
             API_BASE_URL: DEV_BASE + '/api'
         }
     };
-    
+
     // Select the appropriate config based on environment
     const envConfig = isProduction ? baseConfig.PRODUCTION : baseConfig.DEVELOPMENT;
-    
+
     // Return the config with all URLs
     return {
         ...envConfig,
@@ -39,6 +39,53 @@ const API_CONFIG = (() => {
 
 // Make it available globally
 window.API_CONFIG = API_CONFIG;
+
+// Safe localStorage wrapper to handle tracking prevention
+const safeStorage = {
+    getItem: (key) => {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            console.warn('localStorage blocked, trying sessionStorage:', e);
+            try {
+                return sessionStorage.getItem(key);
+            } catch (e2) {
+                console.warn('sessionStorage also blocked:', e2);
+                return window.__tempStorage?.[key] || null;
+            }
+        }
+    },
+    setItem: (key, value) => {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            console.warn('localStorage blocked, trying sessionStorage:', e);
+            try {
+                sessionStorage.setItem(key, value);
+            } catch (e2) {
+                console.warn('sessionStorage also blocked, using memory:', e2);
+                window.__tempStorage = window.__tempStorage || {};
+                window.__tempStorage[key] = value;
+            }
+        }
+    },
+    removeItem: (key) => {
+        try {
+            localStorage.removeItem(key);
+        } catch (e) {
+            try {
+                sessionStorage.removeItem(key);
+            } catch (e2) {
+                if (window.__tempStorage) {
+                    delete window.__tempStorage[key];
+                }
+            }
+        }
+    }
+};
+
+// Make safe storage available globally
+window.safeStorage = safeStorage;
 
 // Helper function to get resource URL
 function getResourceUrl(path) {

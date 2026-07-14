@@ -176,18 +176,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Save token and user data
                 if (responseData.token) {
                     console.log('Login successful, saving token and user data');
-                    localStorage.setItem('token', responseData.token);
+                    const storage = window.safeStorage || localStorage;
+                    storage.setItem('token', responseData.token);
                     if (responseData.user) {
-                        localStorage.setItem('user', JSON.stringify(responseData.user));
+                        storage.setItem('user', JSON.stringify(responseData.user));
                         // Save studentId for dashboard scripts
                         if (responseData.user._id) {
-                            localStorage.setItem('studentId', responseData.user._id);
+                            storage.setItem('studentId', responseData.user._id);
                         }
                         if (responseData.user.admissionNumber) {
-                            localStorage.setItem('admissionNumber', responseData.user.admissionNumber);
+                            storage.setItem('admissionNumber', responseData.user.admissionNumber);
                         }
                     }
-                    
+
                     // Redirect based on user role
                     const role = responseData.user?.role || 'student';
                     console.log('Redirecting to dashboard for role:', role);

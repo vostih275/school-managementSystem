@@ -881,7 +881,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             
             // Get the student ID from localStorage (set during login)
-            const studentId = localStorage.getItem('studentId');
+            const storage = window.safeStorage || localStorage;
+            const studentId = storage.getItem('studentId');
             if (!studentId) {
                 throw new Error('Student ID not found in localStorage');
             }
@@ -1786,7 +1787,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Get current user's ID from localStorage (set during login)
-        const currentUserId = localStorage.getItem('studentId');
+        const storage = window.safeStorage || localStorage;
+        const currentUserId = storage.getItem('studentId');
         if (!currentUserId) {
             console.error('Student ID not found in localStorage');
             return;
