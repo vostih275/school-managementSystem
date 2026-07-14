@@ -1,6 +1,3 @@
-// Import API configuration
-import { API_CONFIG } from './config.js';
-
 // Student Library Management
 document.addEventListener('DOMContentLoaded', function() {
     // Load books when the library tab is clicked
@@ -19,7 +16,8 @@ async function fetchMyIssuedBooks() {
         console.log('Fetching issued books...');
         console.log('Token:', token ? 'Token exists' : 'No token found');
         
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/library/my-books`, {
+        const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com';
+        const response = await fetch(`${API_BASE_URL}/api/library/my-books`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,

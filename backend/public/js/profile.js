@@ -101,7 +101,7 @@ async function fetchFreshProfile(token) {
     // Use the appropriate endpoint based on the user's role
     const profileEndpoint = `/api/students/profile`;
     
-    const response = await fetch(`${window.API_CONFIG?.API_BASE_URL || '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')'}${profileEndpoint}`, {
+    const response = await fetch(`${window.API_CONFIG?.API_BASE_URL || "/api"}${profileEndpoint}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -176,7 +176,7 @@ function populateProfileForm(profile) {
       
       // Clean up any existing localhost URLs
       if (photoUrl && photoUrl.includes('localhost')) {
-        photoUrl = photoUrl.replace(/^http:\/\/localhost(:\d+)?/, window.API_CONFIG?.BASE_URL || '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')');
+        photoUrl = photoUrl.replace(/^http:\/\/localhost(:\d+)?/, window.API_CONFIG?.BASE_URL || "");
       }
       
       // Use our helper function to get the correct URL
@@ -310,7 +310,7 @@ async function updateProfile() {
   };
 
   try {
-    const response = await fetch("(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/profile", {
+    const response = await fetch("/api/profile", {
       method: "PUT",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -380,7 +380,7 @@ async function handlePhotoUpload(event) {
   formData.append('photo', file);
 
   try {
-    const response = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/students/profile/photo', {
+    const response = await fetch('/api/students/profile/photo', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -419,9 +419,9 @@ async function handlePhotoUpload(event) {
         if ((!photoUrl || photoUrl === '') && data.profile?.photo) {
           // If it's a relative path, prepend the base URL
           if (data.profile.photo.startsWith('/')) {
-            photoUrl = `${window.API_CONFIG?.BASE_URL || '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')'}${data.profile.photo}`;
+            photoUrl = `${window.API_CONFIG?.BASE_URL || ""}${data.profile.photo}`;
           } else if (!data.profile.photo.startsWith('http')) {
-            photoUrl = `${window.API_CONFIG?.BASE_URL || '(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')'}/uploads/${data.profile.photo}`;
+            photoUrl = `/uploads/${data.profile.photo}`;
           } else {
             photoUrl = data.profile.photo;
           }
@@ -497,7 +497,7 @@ async function changePassword() {
   }
 
   try {
-    const response = await fetch("(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/profile/change-password", {
+    const response = await fetch("/api/profile/change-password", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${token}`,

@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     uploadForm.addEventListener('submit', handleFileUpload);
     
     // Set default class if user has a class assigned
-    const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
     if (userProfile.class) {
       const classSelect = document.getElementById('class-select');
       if (classSelect) {

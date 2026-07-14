@@ -1120,7 +1120,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Use the API_BASE_URL constant if available, otherwise default to port 5000
-            const API_BASE_URL = window.API_CONFIG?.API_BASE_URL || '/api';
+            const API_BASE_URL = window.API_CONFIG?.API_BASE_URL || "/api";
             console.log('Using API base URL:', API_BASE_URL);
             
             const headers = {

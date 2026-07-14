@@ -1,10 +1,14 @@
 // API Configuration - Using relative URLs for local development
+console.log('[CONFIG] Loading config.js v4...');
+
 const API_CONFIG = (() => {
     // Check if we're running in development or production
     const isProduction = window.location.hostname !== 'localhost' && !window.location.hostname.startsWith('127.');
-    
+
     const PRODUCTION_BASE = 'https://aic-school-system-c0j6.onrender.com';
     const DEV_BASE = 'http://localhost:5000';
+
+    console.log('[CONFIG] Environment:', { isProduction, hostname: window.location.hostname });
 
     const baseConfig = {
         // Production URLs
@@ -18,10 +22,12 @@ const API_CONFIG = (() => {
             API_BASE_URL: DEV_BASE + '/api'
         }
     };
-    
+
     // Select the appropriate config based on environment
     const envConfig = isProduction ? baseConfig.PRODUCTION : baseConfig.DEVELOPMENT;
-    
+
+    console.log('[CONFIG] Selected config:', envConfig);
+
     // Return the config with all URLs
     return {
         ...envConfig,
@@ -33,12 +39,61 @@ const API_CONFIG = (() => {
         EVENTS_URL: `${envConfig.API_BASE_URL}/events`,
         BACKUP_URL: `${envConfig.API_BASE_URL}/backups`,
         // Add other endpoints as needed
-        isProduction
+        isProduction,
+        version: 'v4'
     };
 })();
 
 // Make it available globally
 window.API_CONFIG = API_CONFIG;
+console.log('[CONFIG] API_CONFIG set:', window.API_CONFIG);
+
+// Safe localStorage wrapper to handle tracking prevention
+const safeStorage = {
+    getItem: (key) => {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            console.warn('localStorage blocked, trying sessionStorage:', e);
+            try {
+                return sessionStorage.getItem(key);
+            } catch (e2) {
+                console.warn('sessionStorage also blocked:', e2);
+                return window.__tempStorage?.[key] || null;
+            }
+        }
+    },
+    setItem: (key, value) => {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            console.warn('localStorage blocked, trying sessionStorage:', e);
+            try {
+                sessionStorage.setItem(key, value);
+            } catch (e2) {
+                console.warn('sessionStorage also blocked, using memory:', e2);
+                window.__tempStorage = window.__tempStorage || {};
+                window.__tempStorage[key] = value;
+            }
+        }
+    },
+    removeItem: (key) => {
+        try {
+            localStorage.removeItem(key);
+        } catch (e) {
+            try {
+                sessionStorage.removeItem(key);
+            } catch (e2) {
+                if (window.__tempStorage) {
+                    delete window.__tempStorage[key];
+                }
+            }
+        }
+    }
+};
+
+// Make safe storage available globally
+window.safeStorage = safeStorage;
 
 // Helper function to get resource URL
 function getResourceUrl(path) {

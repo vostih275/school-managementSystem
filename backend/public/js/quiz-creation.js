@@ -1226,4 +1226,86 @@ async function handleQuizSubmission(publish) {
             submitBtn.innerHTML = originalBtnText;
         }
     }
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                ${publish ? 'Publishing...' : 'Saving...'}
+            `;
+            
+            // Get API URL and token
+            const API_BASE_URL = window.API_CONFIG?.API_BASE_URL || "/api";
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                throw new Error('Not authenticated. Please log in again.');
+            }
+            
+            // Send data to the server
+            const response = await fetch(`${API_BASE_URL}/api/quizzes/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(quizData)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to save quiz');
+            }
+            
+            const result = await response.json();
+            
+            // Show success message
+            const successMessage = document.createElement('div');
+            successMessage.className = 'alert alert-success mt-3';
+            successMessage.textContent = publish 
+                ? 'Quiz published successfully!'
+                : 'Quiz saved as draft.';
+            
+            // Remove any existing messages
+            const existingMessage = createQuizForm.querySelector('.alert');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            createQuizForm.appendChild(successMessage);
+            
+            // If published, close the modal after a delay
+            if (publish) {
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('createQuizModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                    
+                    // Reload the page to show the new quiz in the list
+                    window.location.reload();
+                }, 1500);
+            }
+            
+        } catch (error) {
+            console.error('Error saving quiz:', error);
+            
+            // Show error message
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'alert alert-danger mt-3';
+            errorMessage.textContent = error.message || 'An error occurred while saving the quiz. Please try again.';
+            
+            // Remove any existing messages
+            const existingMessage = createQuizForm.querySelector('.alert');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            createQuizForm.appendChild(errorMessage);
+            
+        } finally {
+            // Reset button state
+            const submitBtn = publish ? publishQuizBtn : saveDraftBtn;
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = publish 
+                ? '<i class="fas fa-paper-plane me-1"></i> Publish Quiz'
+                : '<i class="far fa-save me-1"></i> Save as Draft';
+        }
+    }
 });
