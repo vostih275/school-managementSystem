@@ -38,13 +38,14 @@ async function testPdfGeneration() {
         let student = await User.findOne({ role: 'student' }).limit(1);
         if (!student) {
             console.log('No student found. Creating test student...');
-            student = await User.create({
+            student = new User({
                 name: 'Test Student',
                 email: 'test@student.com',
                 password: 'password123',
                 role: 'student',
                 class: 'Grade 9'
             });
+            await student.save();
         }
         console.log('Using student:', student.name, student._id);
 
