@@ -39,10 +39,10 @@ async function apiRequest(endpoint, options = {}) {
 
 // Auth API methods
 export const authApi = {
-    async login(email, password) {
+    async login(identifier, password) {
         return apiRequest('/auth/login', {
             method: 'POST',
-            body: { email, password }
+            body: { identifier, password }
         });
     },
 

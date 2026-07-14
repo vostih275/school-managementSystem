@@ -54,10 +54,10 @@ export { dashboardApi };
 
 // Authentication API
 const authApi = {
-    login: async (email, password) => {
+    login: async (identifier, password) => {
         return fetchData('/auth/login', {
             method: 'POST',
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ identifier, password })
         });
     },
 
