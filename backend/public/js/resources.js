@@ -559,20 +559,23 @@ function deleteResource(resourceId) {
 
 // Add progress bar and message container
 window.addEventListener('DOMContentLoaded', () => {
-  if (!document.getElementById('upload-progress')) {
-    const progress = document.createElement('progress');
-    progress.id = 'upload-progress';
-    progress.max = 100;
-    progress.value = 0;
-    progress.style.display = 'none';
-    document.getElementById('upload-form-container').appendChild(progress);
-  }
-  if (!document.getElementById('resource-upload-msg')) {
-    const msg = document.createElement('div');
-    msg.id = 'resource-upload-msg';
-    msg.style.display = 'none';
-    msg.style.marginTop = '8px';
-    document.getElementById('upload-form-container').appendChild(msg);
+  const uploadFormContainer = document.getElementById('upload-form-container');
+  if (uploadFormContainer) {
+    if (!document.getElementById('upload-progress')) {
+      const progress = document.createElement('progress');
+      progress.id = 'upload-progress';
+      progress.max = 100;
+      progress.value = 0;
+      progress.style.display = 'none';
+      uploadFormContainer.appendChild(progress);
+    }
+    if (!document.getElementById('resource-upload-msg')) {
+      const msg = document.createElement('div');
+      msg.id = 'resource-upload-msg';
+      msg.style.display = 'none';
+      msg.style.marginTop = '8px';
+      uploadFormContainer.appendChild(msg);
+    }
   }
 });
 
