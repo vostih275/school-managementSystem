@@ -51,7 +51,15 @@ app.use('/public/assets', express.static(publicAssetsDir));
 app.use('/downloads/report-cards', express.static(cbcReportCardsDir));
 
 // Serve frontend static files from the bundled public directory
-app.use(express.static(publicDir));
+// This must come BEFORE the catch-all route
+app.use(express.static(publicDir, {
+  maxAge: '1h', // Cache static files for 1 hour
+  etag: true,
+  setHeaders: (res, path) => {
+    // Log static file requests for debugging
+    console.log('[STATIC] Serving:', path);
+  }
+}));
 
 // Favicon
 app.get('/favicon.ico', (req, res) => {
@@ -99,7 +107,12 @@ app.use('/api/backups', require('./routes/backups'));
 app.use('/api/cbc', require('./routes/cbcRoutes'));
 
 // Fallback for unmatched routes (SPA / direct page refresh behavior)
+// Exclude static file extensions to prevent serving HTML for JS/CSS requests
 app.get('*', (req, res) => {
+  // Don't serve HTML for requests that look like static files
+  if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+    return res.status(404).send('Not Found');
+  }
   res.sendFile(indexHtml);
 });
 
