@@ -149,7 +149,7 @@
       <div class="profile-card">
         <!-- Profile Photo -->
         <div class="profile-photo-container">
-          <img id="profile-photo" src="student-photo.jpg" alt="Profile Photo" class="profile-photo">
+          <img id="profile-photo" src="../images/default-avatar.svg" alt="Profile Photo" class="profile-photo">
           <input type="file" id="photo-upload" accept="image/*" style="display: none;">
           <button id="change-photo-btn">Change Photo</button>
         </div>
@@ -158,19 +158,19 @@
         <form id="profile-form">
           <div class="form-group">
             <label for="student-name">Full Name</label>
-            <input type="text" id="student-name" value="John Doe" data-student-id="12345" required>
+            <input type="text" id="student-name" required>
           </div>
           <div class="form-group">
             <label for="student-grade">Grade</label>
-            <input type="text" id="student-grade" value="10" required>
+            <input type="text" id="student-grade" readonly required>
           </div>
           <div class="form-group">
             <label for="profile-student-class">Class</label>
-            <input type="text" id="profile-student-class" value="4" required>
+            <input type="text" id="profile-student-class" readonly required>
           </div>
           <div class="form-group">
             <label for="student-email">Email</label>
-            <input type="email" id="student-email" value="johndoe@example.com" required>
+            <input type="email" id="student-email" required>
           </div>
           <button type="submit" id="save-profile-btn">Save Changes</button>
         </form>

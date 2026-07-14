@@ -110,6 +110,8 @@ router.get('/me', protect, async (req, res) => {
             name: populatedUser.name || '',
             role: populatedUser.role,
             class: populatedUser.class || '',
+            profile: populatedUser.profile || {},
+            photoUrl: populatedUser.profile?.photo || '',
             completedQuizzes: validCompletedQuizzes.map(quiz => ({
                 quizId: quiz.quizId._id,
                 score: quiz.score,
@@ -142,6 +144,8 @@ router.get('/me', protect, async (req, res) => {
             name: req.user?.name || '',
             role: req.user?.role || 'student',
             class: req.user?.class || '',
+            profile: req.user?.profile || {},
+            photoUrl: req.user?.profile?.photo || '',
             completedQuizzes: []
         };
         

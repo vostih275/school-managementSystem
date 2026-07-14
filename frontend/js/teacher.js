@@ -1008,22 +1008,136 @@ document.addEventListener('DOMContentLoaded', () => {
       this.initProfileForm();
       this.initChangePhoto();
       this.initChangePassword();
+      this.fetchProfile();
     }
+
+    apiBase() {
+      return (window.API_CONFIG && window.API_CONFIG.API_BASE_URL)
+        ? window.API_CONFIG.API_BASE_URL
+        : 'http://localhost:5000/api';
+    }
+
+    async fetchProfile() {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${this.apiBase()}/users/me`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch profile: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const user = data.user || data;
+        this.populateProfileForm(user);
+        localStorage.setItem('userProfile', JSON.stringify(user));
+      } catch (error) {
+        console.error('Error fetching teacher profile:', error);
+        const cached = localStorage.getItem('userProfile');
+        if (cached) {
+          try {
+            this.populateProfileForm(JSON.parse(cached));
+          } catch (e) {
+            console.error('Error parsing cached profile:', e);
+          }
+        }
+      }
+    }
+
+    populateProfileForm(user) {
+      if (!user) return;
+
+      const nameInput = document.getElementById('teacher-name');
+      const emailInput = document.getElementById('teacher-email');
+      const subjectsInput = document.getElementById('teacher-subjects');
+      const photo = document.getElementById('profile-photo');
+      const sidebarName = document.querySelector('.profile-name');
+
+      if (nameInput) nameInput.value = user.name || '';
+      if (emailInput) emailInput.value = user.email || '';
+      if (subjectsInput) {
+        const subjects = user.profile?.subjects || [];
+        subjectsInput.value = Array.isArray(subjects) ? subjects.join(', ') : subjects;
+      }
+      if (sidebarName) sidebarName.textContent = user.name || 'Teacher';
+
+      if (photo) {
+        const photoUrl = user.photoUrl || user.profile?.photo || '';
+        if (photoUrl) {
+          photo.src = photoUrl.includes('?') ? photoUrl : `${photoUrl}?t=${Date.now()}`;
+          photo.onerror = () => { photo.src = '../images/default-avatar.svg'; };
+        } else {
+          photo.src = '../images/default-avatar.svg';
+        }
+      }
+    }
+
     initProfileForm() {
       const profileForm = document.getElementById('profile-form');
       if (profileForm) {
-        profileForm.addEventListener('submit', (e) => {
+        profileForm.addEventListener('submit', async (e) => {
           e.preventDefault();
-          // If there's a global showSuccess function, use it
-          if (typeof showSuccess === 'function') {
-            showSuccess('Profile updated successfully!');
-          } else {
-            // Fallback to console log if showSuccess is not available
-            console.log('Profile updated successfully!');
+
+          const token = localStorage.getItem('token');
+          if (!token) return;
+
+          const name = document.getElementById('teacher-name')?.value.trim();
+          const email = document.getElementById('teacher-email')?.value.trim();
+          const subjectsRaw = document.getElementById('teacher-subjects')?.value || '';
+          const subjects = subjectsRaw
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s);
+
+          if (!name || !email) {
+            this._photoNotify('Name and email are required', 'error');
+            return;
+          }
+
+          const saveBtn = document.getElementById('save-profile-btn');
+          const originalText = saveBtn ? saveBtn.textContent : '';
+          if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+          }
+
+          try {
+            const response = await fetch(`${this.apiBase()}/profile`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ name, email, subjects })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+              throw new Error(data.message || data.error || 'Failed to update profile');
+            }
+
+            this._photoNotify('Profile updated successfully', 'success');
+            this.fetchProfile();
+          } catch (error) {
+            console.error('Error updating profile:', error);
+            this._photoNotify(error.message || 'Failed to update profile', 'error');
+          } finally {
+            if (saveBtn) {
+              saveBtn.disabled = false;
+              saveBtn.textContent = originalText;
+            }
           }
         });
       }
     }
+
     initChangePhoto() {
       const changePhotoBtn = document.getElementById('change-photo-btn');
       const photoUpload = document.getElementById('photo-upload');
@@ -1057,14 +1171,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
           const token = localStorage.getItem('token');
-          const apiBase = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL)
-            ? window.API_CONFIG.API_BASE_URL
-            : 'http://localhost:5000/api';
-
           const formData = new FormData();
           formData.append('photo', file);
 
-          const response = await fetch(`${apiBase}/students/profile/photo`, {
+          const response = await fetch(`${this.apiBase()}/students/profile/photo`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData
@@ -1110,13 +1220,45 @@ document.addEventListener('DOMContentLoaded', () => {
         alert(message);
       }
     }
+
     initChangePassword() {
       const passwordForm = document.getElementById('password-form');
       if (passwordForm) {
-        passwordForm.addEventListener('submit', (e) => {
+        passwordForm.addEventListener('submit', async (e) => {
           e.preventDefault();
-          alert('Password changed successfully!');
-          passwordForm.reset();
+
+          const token = localStorage.getItem('token');
+          if (!token) return;
+
+          const currentPassword = document.getElementById('current-password')?.value;
+          const newPassword = document.getElementById('new-password')?.value;
+
+          if (!currentPassword || !newPassword) {
+            this._photoNotify('Both current and new password are required', 'error');
+            return;
+          }
+
+          try {
+            const response = await fetch(`${this.apiBase()}/profile/change-password`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ currentPassword, newPassword })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+              throw new Error(data.message || data.error || 'Failed to change password');
+            }
+
+            this._photoNotify('Password changed successfully', 'success');
+            passwordForm.reset();
+          } catch (error) {
+            console.error('Error changing password:', error);
+            this._photoNotify(error.message || 'Failed to change password', 'error');
+          }
         });
       }
     }

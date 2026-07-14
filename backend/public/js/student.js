@@ -452,7 +452,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const API = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL) ? window.API_CONFIG.API_BASE_URL : 'http://localhost:5000/api';
-            const response = await fetch(`${API}/profile`, {
+            const response = await fetch(`${API}/users/me`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -464,7 +464,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
-            const userData = await response.json();
+            const result = await response.json();
+            const userData = result.user || result;
             console.log("Full User Profile Data:", JSON.stringify(userData, null, 2));
             
             // Debug: Log class-related data
@@ -513,13 +514,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
             
-            // Set the grade
-            document.getElementById("student-grade").value = userData.profile?.grade || "";
+            // Set the grade/class from the student's assigned class (both display the CBC class)
+            const userClass = userData.class || userData.profile?.class || "";
+            document.getElementById("student-grade").value = userClass;
             
             // Update profile photo if available
             const profilePhoto = document.getElementById("profile-photo");
-            if (userData.profile?.photo) {
-                profilePhoto.src = userData.profile.photo;
+            if (userData.profile?.photo || userData.photoUrl) {
+                profilePhoto.src = userData.photoUrl || userData.profile.photo;
             } else {
                 // Set default avatar if no photo is available
                 profilePhoto.src = '../images/default-avatar.svg';
@@ -540,10 +542,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const cachedProfile = localStorage.getItem('userProfile');
             if (cachedProfile) {
                 const userData = JSON.parse(cachedProfile);
+                const cachedClass = userData.class || userData.profile?.class || "";
                 document.getElementById("student-name").value = userData.name || "";
                 document.getElementById("student-email").value = userData.email || "";
-                document.getElementById("student-class").value = userData.class || userData.profile?.class || "";
-                document.getElementById("student-grade").value = userData.grade || userData.profile?.grade || "";
+                document.getElementById("profile-student-class").value = cachedClass;
+                document.getElementById("student-grade").value = cachedClass;
             }
         }
     }
@@ -560,23 +563,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             
-            const className = document.getElementById('profile-student-class')?.value || '';
             const cachedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
             
             const formData = {
                 name: document.getElementById('student-name').value,
                 email: document.getElementById('student-email').value,
-                class: className,  // Set class at root level
                 profile: {
                     ...(cachedProfile.profile || {}), // Include existing profile data
-                    grade: document.getElementById('student-grade').value || '',
-                    class: className  // Ensure class is set in profile
+                    photo: cachedProfile.profile?.photo || ''
                 }
             };
             
             console.log('Submitting profile update with data:', {
-                rootClass: className,
-                profileClass: formData.profile.class,
                 fullPayload: formData
             });
             
