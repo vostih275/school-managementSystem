@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// Validate class format (e.g., 'Grade 1', 'Form 1')
+// Validate class format for CBC Primary and Junior Secondary (PP1, PP2, Grade 1-9)
 const validateClass = (value) => {
   if (!value) return true; // Allow empty for non-students
-  return /^(Grade\s\d{1,2}|Form\s[1-4]|PP[12])$/i.test(value);
+  return /^(PP[12]|Grade\s[1-9])$/i.test(value);
 };
 
 const userSchema = new mongoose.Schema({
@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema({
         // Only validate class for students
         return this.role !== 'student' || validateClass(v);
       },
-      message: props => `${props.value} is not a valid class. Please use format 'Grade X' or 'Form X'`
+      message: props => `${props.value} is not a valid class. Please use PP1, PP2, or Grade 1-9`
     }
   },
   classAssigned: { type: String, default: '' }, // For backward compatibility

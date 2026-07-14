@@ -21,14 +21,18 @@ const standardizeClass = (classValue) => {
     // Normalize verbose PP labels: "PP1 (Pre-Primary 1)" -> "PP1", "PP2 (Pre-Primary 2)" -> "PP2"
     const ppNormalized = trimmed.replace(/^(PP[12])\s*\(.*\)$/i, '$1');
 
-    // Accepted canonical values (case-insensitive):
-    //   Baby Class | PP1 | PP2 | Grade 1-12 | Form 1-4
-    const VALID = /^(Baby\s+Class|PP[12]|Grade\s+([1-9]|1[0-2])|Form\s+[1-4])$/i;
+    // Accepted canonical values for CBC Primary and Junior Secondary (case-insensitive):
+    //   PP1 | PP2 | Grade 1-9
+    const VALID = /^(PP[12]|Grade\s+[1-9])$/i;
     if (!VALID.test(ppNormalized)) {
         return null;
     }
 
-    // Title-case each word (handles "Baby Class", "Grade 10", etc.)
+    // Preserve PP1/PP2 uppercase; title-case Grade values
+    if (/^pp[12]$/i.test(ppNormalized)) {
+        return ppNormalized.toUpperCase();
+    }
+
     return ppNormalized
         .toLowerCase()
         .split(' ')
