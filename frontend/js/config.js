@@ -1,5 +1,5 @@
 // API Configuration - Using relative URLs for local development
-console.log('[CONFIG] Loading config.js...');
+console.log('[CONFIG] Loading config.js v4...');
 
 const API_CONFIG = (() => {
     // Check if we're running in development or production
@@ -7,6 +7,8 @@ const API_CONFIG = (() => {
 
     const PRODUCTION_BASE = 'https://aic-school-system-c0j6.onrender.com';
     const DEV_BASE = 'http://localhost:5000';
+
+    console.log('[CONFIG] Environment:', { isProduction, hostname: window.location.hostname });
 
     const baseConfig = {
         // Production URLs
@@ -24,6 +26,8 @@ const API_CONFIG = (() => {
     // Select the appropriate config based on environment
     const envConfig = isProduction ? baseConfig.PRODUCTION : baseConfig.DEVELOPMENT;
 
+    console.log('[CONFIG] Selected config:', envConfig);
+
     // Return the config with all URLs
     return {
         ...envConfig,
@@ -35,7 +39,8 @@ const API_CONFIG = (() => {
         EVENTS_URL: `${envConfig.API_BASE_URL}/events`,
         BACKUP_URL: `${envConfig.API_BASE_URL}/backups`,
         // Add other endpoints as needed
-        isProduction
+        isProduction,
+        version: 'v4'
     };
 })();
 
