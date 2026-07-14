@@ -14,7 +14,7 @@ const generateTempPassword = () => {
     return `${process.env.SCHOOL_NAME || 'School'}@${year}-${random}`;
 };
 
-// Helper: locate a user by email or admission number
+// Helper: locate a user by email, admission number, or name
 const findUserByIdentifier = async (identifier) => {
     const raw = (identifier || '').toString().trim();
     if (!raw) return null;
@@ -25,9 +25,13 @@ const findUserByIdentifier = async (identifier) => {
 
     // Treat as admission number (case-insensitive exact match)
     const escaped = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return await User.findOne({
+    const byAdmission = await User.findOne({
         admissionNumber: { $regex: new RegExp(`^${escaped}$`, 'i') }
     });
+    if (byAdmission) return byAdmission;
+
+    // Fallback: search by name (case-insensitive)
+    return await User.findOne({ name: { $regex: new RegExp(`^${escaped}$`, 'i') } });
 };
 
 const standardizeClass = (classValue) => {
