@@ -15,8 +15,14 @@ const getNextAdmissionNumber = async () => {
   const counter = await Counter.findOneAndUpdate(
     { _id: 'admissionNumber' },
     { $inc: { seq: 1 } },
-    { new: true, upsert: true }
+    { new: true, upsert: true, setDefaultsOnInsert: true }
   );
+
+  console.log('Counter increment result:', counter);
+
+  if (!counter || typeof counter.seq !== 'number') {
+    throw new Error('Counter document not returned or invalid');
+  }
 
   // Initial seq after first increment is 1, so add 999 to start at 1000
   return String(counter.seq + 999);

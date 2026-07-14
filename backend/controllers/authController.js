@@ -164,6 +164,8 @@ exports.provisionUser = async (req, res) => {
         const newUser = new User(userData);
         await newUser.save();
 
+        console.log('Provisioned user:', newUser.name, '| admissionNumber:', newUser.admissionNumber, '| role:', newUser.role);
+
         res.status(201).json({
             success: true,
             message: `${normalizedRole} account provisioned successfully`,

@@ -86,9 +86,12 @@ const userSchema = new mongoose.Schema({
 userSchema.pre('save', async function(next) {
   // Auto-generate admission number for new students
   if (this.isNew && this.role === 'student' && !this.admissionNumber) {
+    console.log('Generating admission number for:', this.name);
     try {
       this.admissionNumber = await getNextAdmissionNumber();
+      console.log('Generating admission number for:', this.name, 'Result:', this.admissionNumber);
     } catch (err) {
+      console.error('Failed to generate admission number for:', this.name, err);
       return next(err);
     }
   }
