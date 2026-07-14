@@ -179,6 +179,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     localStorage.setItem('token', responseData.token);
                     if (responseData.user) {
                         localStorage.setItem('user', JSON.stringify(responseData.user));
+                        // Save studentId for dashboard scripts
+                        if (responseData.user._id) {
+                            localStorage.setItem('studentId', responseData.user._id);
+                        }
+                        if (responseData.user.admissionNumber) {
+                            localStorage.setItem('admissionNumber', responseData.user.admissionNumber);
+                        }
                     }
                     
                     // Redirect based on user role

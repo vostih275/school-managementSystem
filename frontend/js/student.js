@@ -880,10 +880,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             
-            // Get the student ID from the profile
-            const studentId = document.getElementById('student-name')?.dataset?.studentId;
+            // Get the student ID from localStorage (set during login)
+            const studentId = localStorage.getItem('studentId');
             if (!studentId) {
-                throw new Error('Student ID not found');
+                throw new Error('Student ID not found in localStorage');
             }
             
             // Fetch all fees with payments included
@@ -1785,9 +1785,12 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Get current user's ID from localStorage
-        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-        const currentUserId = userProfile._id;
+        // Get current user's ID from localStorage (set during login)
+        const currentUserId = localStorage.getItem('studentId');
+        if (!currentUserId) {
+            console.error('Student ID not found in localStorage');
+            return;
+        }
 
         // Sort by due date (soonest first)
         const sortedHomeworks = [...homeworks].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
