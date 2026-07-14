@@ -2,7 +2,7 @@
 if (typeof API_BASE_URL === 'undefined') {
     window.API_BASE_URL = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL)
         ? window.API_CONFIG.API_BASE_URL
-        : 'http://localhost:5000/api';
+        : '/api';
 }
 
 // Function to show alert messages

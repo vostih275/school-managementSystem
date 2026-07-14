@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // Send the file to the server
-                    const response = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/assignments/submit', {
+                    const response = await fetch('/api/assignments/submit', {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`

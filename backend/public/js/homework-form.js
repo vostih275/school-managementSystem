@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       console.log('Submitting form to server...');
       
-      const response = await fetch('(window.API_CONFIG && window.API_CONFIG.BASE_URL ? window.API_CONFIG.BASE_URL : 'http://localhost:5000')/api/homeworks', {
+      const response = await fetch('/api/homeworks', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
