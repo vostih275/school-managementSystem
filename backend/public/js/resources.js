@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Global variables
 let availableClasses = [];
 let userClass = null;
+let resourcesData = [];
 
 // Cancel the upload process
 const cancelBtn = document.getElementById('cancel-upload-btn');
