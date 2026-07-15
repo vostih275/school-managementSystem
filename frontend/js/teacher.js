@@ -3742,15 +3742,17 @@ const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
       const viewPdfBtn = document.createElement('button');
       viewPdfBtn.textContent = 'View Saved PDF';
       viewPdfBtn.className = 'btn btn-primary';
-      viewPdfBtn.onclick = () => window.open(`${window.API_CONFIG?.BASE_URL || "http://localhost:5000"}${result.data.path}`, '_blank');
-      
+      // Use Cloudinary URL directly if it's already a complete URL, otherwise prepend BASE_URL
+      const pdfUrl = result.data.path.startsWith('http') ? result.data.path : `${window.API_CONFIG?.BASE_URL || "http://localhost:5000"}${result.data.path}`;
+      viewPdfBtn.onclick = () => window.open(pdfUrl, '_blank');
+
       // Create download button
       const downloadBtn = document.createElement('button');
       downloadBtn.textContent = 'Download PDF';
       downloadBtn.className = 'btn btn-outline-primary';
       downloadBtn.onclick = () => {
         const link = document.createElement('a');
-        link.href = `${window.API_CONFIG?.BASE_URL || "http://localhost:5000"}${result.data.path}`;
+        link.href = pdfUrl;
         link.download = `ReportCard_${studentName.replace(/\s+/g, '_')}_${term}_${year}.pdf`;
         document.body.appendChild(link);
         link.click();
@@ -4395,9 +4397,10 @@ const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
       
       // Open the generated PDF in a new tab after a short delay
       setTimeout(() => {
-        const pdfUrl = `${window.API_CONFIG?.BASE_URL || "http://localhost:5000"}${result.data.path}`;
+        // Use Cloudinary URL directly if it's already a complete URL, otherwise prepend BASE_URL
+        const pdfUrl = result.data.path.startsWith('http') ? result.data.path : `${window.API_CONFIG?.BASE_URL || "http://localhost:5000"}${result.data.path}`;
         window.open(pdfUrl, '_blank');
-        
+
         // Add a direct download link as well
         const downloadLink = document.createElement('a');
         downloadLink.href = pdfUrl;

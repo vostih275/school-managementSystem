@@ -313,8 +313,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="bi bi-eye me-1"></i> View
                   </button>
                   <div class="btn-group">
-                    <a href="${card.fileUrl || `/api/report-cards/download/${card.id || card._id}`}" 
-                       class="btn btn-sm btn-outline-secondary" 
+                    <a href="${card.path || card.fileUrl || `/api/report-cards/download/${card.id || card._id}`}"
+                       class="btn btn-sm btn-outline-secondary"
                        download
                        target="_blank"
                        rel="noopener noreferrer">

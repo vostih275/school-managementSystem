@@ -4,8 +4,7 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-// Puppeteer is not available
-const puppeteer = null;
+const puppeteer = require('puppeteer');
 const { promisify } = require('util');
 const writeFileAsync = promisify(fsSync.writeFile);
 const mkdirAsync = promisify(fsSync.mkdir);
@@ -38,11 +37,6 @@ const ensureDirectoryExists = async (dir) => {
 // Helper function to generate PDF from HTML
 const generatePdfFromHtml = async (html, outputPath) => {
     console.log(`Attempting to generate PDF at: ${outputPath}`);
-    
-    if (!puppeteer) {
-        throw new Error('PDF generation is not available. Puppeteer is not installed.');
-    }
-    
     console.log(`Generating PDF at: ${outputPath}`);
     
     const browser = await puppeteer.launch({

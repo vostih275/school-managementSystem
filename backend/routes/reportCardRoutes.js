@@ -5,8 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
-// Puppeteer is not available
-const puppeteer = null;
+const puppeteer = require('puppeteer');
 const ReportCard = require('../models/ReportCard');
 const User = require('../models/User');
 const {
@@ -106,7 +105,7 @@ router.post(
         
         try {
             const { studentId, term, year, comments, htmlContent } = req.body;
-            
+
             // Validate required fields
             if (!studentId || !term || !year || !htmlContent) {
                 return res.status(400).json({
@@ -114,7 +113,7 @@ router.post(
                     message: 'Student ID, term, year, and HTML content are required'
                 });
             }
-            
+
             // Check if student exists
             const student = await User.findById(studentId);
             if (!student) {
@@ -123,175 +122,123 @@ router.post(
                     message: 'Student not found'
                 });
             }
-            
-            // Generate unique filenames for both HTML and PDF
+
+            // Generate unique identifier for Cloudinary
             const timestamp = Date.now();
-            const baseFilename = `report-${timestamp}`;
-            const htmlFilename = `${baseFilename}.html`;
-            const pdfFilename = `${baseFilename}.pdf`;
-            
-            // Define paths
-            const uploadsDir = path.join(__dirname, '../public/uploads/report-cards');
-            const htmlPath = path.join(uploadsDir, htmlFilename);
-            const pdfPath = path.join(uploadsDir, pdfFilename);
-            
-            // Public URLs - using the new /report-cards endpoint
-            const publicHtmlPath = `/report-cards/${htmlFilename}`;
-            const publicPdfPath = `/report-cards/${pdfFilename}`;
-            
+            const publicId = `report_cards/${studentId}_${timestamp}`;
+
+            console.log('Starting PDF generation with Cloudinary upload...');
+
+            // Generate PDF using Puppeteer and upload to Cloudinary
+            const browser = await puppeteer.launch({
+                headless: 'new',
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+            });
+
+            let pdfBuffer;
             try {
-                // 1. Ensure the directory exists
-                await fs.mkdir(uploadsDir, { recursive: true });
-                console.log(`Upload directory verified/created: ${uploadsDir}`);
-                
-                // 2. First save the HTML content as is
-                console.log(`Saving HTML to: ${htmlPath}`);
-                await fs.writeFile(htmlPath, htmlContent, 'utf8');
-                console.log('HTML file saved successfully');
-                
-                // 3. Now generate PDF from the saved HTML file
-                console.log(`Generating PDF at: ${pdfPath}`);
-                const browser = await puppeteer.launch({
-                    headless: 'new',
-                    args: ['--no-sandbox', '--disable-setuid-sandbox']
+                const page = await browser.newPage();
+
+                // Set HTML content directly
+                await page.setContent(htmlContent, {
+                    waitUntil: 'networkidle0',
+                    timeout: 30000
                 });
-                
-                try {
-                    const page = await browser.newPage();
-                    
-                    // Load the HTML file directly from the filesystem
-                    const fileUrl = `file://${htmlPath}`;
-                    console.log(`Loading HTML from: ${fileUrl}`);
-                    
-                    await page.goto(fileUrl, {
-                        waitUntil: 'networkidle0',
-                        timeout: 30000
-                    });
-                    
-                    // Wait for any dynamic content to load
-                    await page.evaluateHandle('document.fonts.ready');
-                    
-                    // Generate PDF with proper margins and format
-                    const pdfBuffer = await page.pdf({
-                        path: pdfPath,
-                        format: 'A4',
-                        printBackground: true,
-                        margin: {
-                            top: '20mm',
-                            right: '15mm',
-                            bottom: '20mm',
-                            left: '15mm'
-                        },
-                        timeout: 30000
-                    });
-                    
-                    console.log(`PDF generated successfully at: ${pdfPath}`);
-                } catch (pdfError) {
-                    console.error('Error generating PDF:', pdfError);
-                    // Don't fail the whole request if PDF generation fails
-                } finally {
-                    await browser.close().catch(e => console.error('Error closing browser:', e));
-                }
-                
-                // Verify both files were created
-                const filesExist = {
-                    html: await fs.access(htmlPath).then(() => true).catch(() => false),
-                    pdf: await fs.access(pdfPath).then(() => true).catch(() => false)
-                };
-                
-                console.log('Files created:', filesExist);
-                
-                if (!filesExist.html) {
-                    throw new Error('Failed to save HTML file');
-                }
-                
-            } catch (error) {
-                console.error('Error in report card generation:', {
-                    error: error.message,
-                    stack: error.stack
-                });
-                
-                // Clean up any partially created files
-                const cleanup = async (filePath) => {
-                    try {
-                        if (await fs.access(filePath).then(() => true).catch(() => false)) {
-                            await fs.unlink(filePath);
-                            console.log(`Cleaned up: ${filePath}`);
-                        }
-                    } catch (e) {
-                        console.error(`Error cleaning up ${filePath}:`, e);
+
+                // Generate PDF to memory buffer
+                pdfBuffer = await page.pdf({
+                    format: 'A4',
+                    printBackground: true,
+                    margin: {
+                        top: '20mm',
+                        right: '15mm',
+                        bottom: '20mm',
+                        left: '15mm'
                     }
-                };
-                
-                await cleanup(htmlPath);
-                await cleanup(pdfPath);
-                
-                throw error;
+                });
+
+                console.log('PDF generated successfully in memory');
+            } catch (pdfError) {
+                console.error('Error generating PDF:', pdfError);
+                throw new Error('Failed to generate PDF: ' + pdfError.message);
+            } finally {
+                await browser.close().catch(e => console.error('Error closing browser:', e));
             }
-            
-            // Create report card record with all required fields
+
+            // Upload PDF to Cloudinary using upload_stream
+            console.log('Uploading PDF to Cloudinary...');
+            const cloudinaryUploadPromise = new Promise((resolve, reject) => {
+                const uploadStream = cloudinary.uploader.upload_stream(
+                    {
+                        public_id: publicId,
+                        folder: 'aic_school_system/report_cards',
+                        resource_type: 'raw',
+                        format: 'pdf',
+                        overwrite: true
+                    },
+                    (error, result) => {
+                        if (error) {
+                            console.error('Cloudinary upload error:', error);
+                            reject(error);
+                        } else {
+                            console.log('Cloudinary upload successful:', result);
+                            resolve(result);
+                        }
+                    }
+                );
+
+                // Write the buffer to the upload stream
+                uploadStream.end(pdfBuffer);
+            });
+
+            const cloudinaryResult = await cloudinaryUploadPromise;
+
+            // Create report card record with Cloudinary URL and public ID
             const reportCard = new ReportCard({
                 studentId,
                 studentName: student.name,
                 term: term.trim(),
                 year: year.trim(),
                 comments: comments || '',
-                path: publicPdfPath, // Public URL for the PDF
-                htmlPath: publicHtmlPath, // Public URL for the HTML
-                status: 'published', // Must be one of: 'draft', 'published', 'archived'
+                path: cloudinaryResult.secure_url, // Cloudinary secure URL
+                cloudinaryPublicId: cloudinaryResult.public_id, // Cloudinary public ID
+                status: 'published',
                 uploadedBy: req.user.id,
                 htmlContent: htmlContent
             });
-            
+
             console.log('Creating report card with data:', {
                 studentId: reportCard.studentId,
                 studentName: reportCard.studentName,
                 term: reportCard.term,
                 year: reportCard.year,
                 path: reportCard.path,
-                htmlPath: reportCard.htmlPath,
+                cloudinaryPublicId: reportCard.cloudinaryPublicId,
                 status: reportCard.status
             });
-            
+
             await reportCard.save();
-            
+
             res.status(201).json({
                 success: true,
                 message: 'Report card generated successfully',
                 data: reportCard
             });
-            
+
         } catch (error) {
             console.error('Error generating report card:', {
                 error: error.toString(),
                 stack: error.stack,
                 request: {
                     body: req.body,
-                    user: req.user,
-                    params: req.params
+                    user: req.user
                 }
             });
-            
-            // More specific error messages based on error type
-            let errorMessage = 'Error generating report card';
-            let statusCode = 500;
-            
-            if (error.name === 'ValidationError') {
-                errorMessage = 'Validation error: ' + error.message;
-                statusCode = 400;
-            } else if (error.code === 'ENOENT') {
-                errorMessage = 'File system error: Could not access or create directory';
-                statusCode = 500;
-            } else if (error.name === 'MongoError') {
-                errorMessage = 'Database error: ' + error.message;
-                statusCode = 500;
-            }
-            
-            res.status(statusCode).json({
+
+            res.status(500).json({
                 success: false,
-                message: errorMessage,
-                error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+                message: 'Error generating report card',
+                error: error.message
             });
         }
     }
