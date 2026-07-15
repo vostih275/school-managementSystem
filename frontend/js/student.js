@@ -419,9 +419,8 @@ document.addEventListener('DOMContentLoaded', function () {
             } else if (sectionId === 'grades-section') {
                 await fetchGrades();
             } else if (sectionId === 'report-cards-section') {
-                // Initialize report cards
-                const reportCards = new StudentReportCards();
-                reportCards.initialize();
+                // Report cards functionality is handled by report-cards.js
+                console.log('Report cards section activated');
             } else if (sectionId === 'fee-records-section') {
                 await fetchFeeRecords();
             }
@@ -823,8 +822,8 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       try {
-        const _apiRes = window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api';
-        const response = await fetch(`${_apiRes}/resources`, {
+        const _apiRes = window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com';
+        const response = await fetch(`${_apiRes}/api/resources`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`
@@ -884,7 +883,22 @@ document.addEventListener('DOMContentLoaded', function () {
             
             // Get the student ID from localStorage (set during login)
             const storage = window.safeStorage || localStorage;
-            const studentId = storage.getItem('studentId');
+            let studentId = storage.getItem('studentId');
+            
+            // Fallback: try to get studentId from JWT token if not in localStorage
+            if (!studentId) {
+                try {
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        studentId = payload.id || payload._id || payload.sub;
+                        if (studentId) {
+                            storage.setItem('studentId', studentId);
+                        }
+                    }
+                } catch (e) { /* ignore parse error */ }
+            }
+            
             if (!studentId) {
                 throw new Error('Student ID not found in localStorage');
             }
