@@ -17,7 +17,7 @@ const {
 } = require('../controllers/reportCardController');
 const { protect, authorize } = require('../middleware/auth');
 const { generatePdfFromHtml } = require('../utils/pdfGenerator');
-const uploadCloudinary = require('../config/cloudinary');
+const upload = require('../config/cloudinary');
 const cloudinary = require('cloudinary').v2;
 
 // Middleware to handle file upload errors
@@ -53,7 +53,7 @@ router.post(
             return next();
         }
         // Otherwise, use Cloudinary upload middleware
-        uploadCloudinary.single('reportFile')(req, res, next);
+        upload.single('reportFile')(req, res, next);
     },
     handleFileUploadErrors,
     sendReportCard
@@ -340,7 +340,7 @@ router.post(
     '/legacy',
     protect,
     authorize('teacher', 'admin'),
-    uploadCloudinary.single('reportCard'),
+    upload.single('reportCard'),
     handleFileUploadErrors,
     async (req, res, next) => {
         try {
