@@ -468,7 +468,7 @@ async function loadResources(selectedClass = null) {
               <div class="resource-icon">${icon}</div>
               <div class="resource-content">
                 <div class="resource-name" title="${resource.name}">
-                  <a href="${window.API_BASE_URL}/uploads/resources/${resource.path}" target="_blank">
+                  <a href="${resource.path}" target="_blank">
                     ${resource.name}
                   </a>
                 </div>
@@ -476,7 +476,7 @@ async function loadResources(selectedClass = null) {
                 ${uploaderInfo}
               </div>
               <div class="resource-actions">
-                <a href="${window.API_BASE_URL}/uploads/resources/${resource.path}" download class="download-btn" title="Download">
+                <a href="${resource.path}" download class="download-btn" title="Download">
                   <i class="fas fa-download"></i>
                 </a>
                 ${resource.canDelete ? `

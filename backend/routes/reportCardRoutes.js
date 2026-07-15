@@ -9,49 +9,16 @@ const { v4: uuidv4 } = require('uuid');
 const puppeteer = null;
 const ReportCard = require('../models/ReportCard');
 const User = require('../models/User');
-const { 
-    sendReportCard, 
-    getStudentReportCards, 
+const {
+    sendReportCard,
+    getStudentReportCards,
     getReportCard,
-    getAllReportCards 
+    getAllReportCards
 } = require('../controllers/reportCardController');
 const { protect, authorize } = require('../middleware/auth');
 const { generatePdfFromHtml } = require('../utils/pdfGenerator');
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-    destination: async (req, file, cb) => {
-        // Save to backend's public directory
-        const uploadDir = path.join(__dirname, '../public/uploads/report-cards');
-        await fs.mkdir(uploadDir, { recursive: true });
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-        const ext = path.extname(file.originalname) || '.pdf'; // Default to .pdf if no extension
-        const filename = `report-${uniqueSuffix}${ext}`;
-        console.log('Saving report card to:', path.join(__dirname, '../public/uploads/report-cards', filename));
-        cb(null, filename);
-    }
-});
-
-const fileFilter = (req, file, cb) => {
-    // Accept only PDF, DOCX, and HTML files
-    const allowedTypes = ['.pdf', '.docx', '.html', '.htm'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    
-    if (allowedTypes.includes(ext)) {
-        cb(null, true);
-    } else {
-        cb(new Error(`Invalid file type. Only ${allowedTypes.join(', ')} files are allowed.`), false);
-    }
-};
-
-const upload = multer({ 
-    storage, 
-    fileFilter,
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
-});
+const uploadCloudinary = require('../config/cloudinary');
+const cloudinary = require('cloudinary').v2;
 
 // Middleware to handle file upload errors
 const handleFileUploadErrors = (err, req, res, next) => {
@@ -85,8 +52,8 @@ router.post(
         if (!req.is('multipart/form-data') || !req.headers['content-type']?.includes('multipart/form-data')) {
             return next();
         }
-        // Otherwise, use multer for file upload
-        upload.single('reportFile')(req, res, next);
+        // Otherwise, use Cloudinary upload middleware
+        uploadCloudinary.single('reportFile')(req, res, next);
     },
     handleFileUploadErrors,
     sendReportCard
@@ -370,10 +337,10 @@ router.get(
 
 // Legacy upload endpoint (for backward compatibility)
 router.post(
-    '/',
+    '/legacy',
     protect,
     authorize('teacher', 'admin'),
-    upload.single('reportCard'),
+    uploadCloudinary.single('reportCard'),
     handleFileUploadErrors,
     async (req, res, next) => {
         try {
@@ -381,33 +348,38 @@ router.post(
             const file = req.file;
 
             if (!file) {
-                return res.status(400).json({ 
+                return res.status(400).json({
                     success: false,
-                    message: 'No file was uploaded' 
+                    message: 'No file was uploaded'
                 });
             }
 
+            // Cloudinary/CloudinaryStorage sets req.file.path to the full Cloudinary URL
+            // and req.file.filename/public_id to the Cloudinary public_id
+            const cloudinaryUrl = file.path;
+            const publicId = file.filename || file.public_id;
 
             const newReport = new ReportCard({
                 studentName,
                 year,
                 term,
                 comments,
-                path: file.filename,
+                path: cloudinaryUrl,
+                cloudinaryPublicId: publicId,
                 uploadedBy: req.user.id,
                 studentId: req.user.id // Default to current user if not specified
             });
 
             await newReport.save();
-            
-            res.status(201).json({ 
+
+            res.status(201).json({
                 success: true,
-                message: 'Report card uploaded', 
-                data: newReport 
+                message: 'Report card uploaded',
+                data: newReport
             });
         } catch (error) {
             console.error('Error uploading report card:', error);
-            res.status(500).json({ 
+            res.status(500).json({
                 success: false,
                 message: 'Server error',
                 error: error.message
@@ -417,35 +389,42 @@ router.post(
 );
 
 // Delete a report card (admin/teacher only)
-router.delete('/:id', 
-    protect, 
+router.delete('/:id',
+    protect,
     authorize('admin', 'teacher'),
     async (req, res) => {
         try {
             const report = await ReportCard.findById(req.params.id);
-            
+
             if (!report) {
-                return res.status(404).json({ 
+                return res.status(404).json({
                     success: false,
-                    message: 'Report card not found' 
+                    message: 'Report card not found'
                 });
             }
-            
-            // Delete the file from the filesystem
-            const filePath = require('path').join(__dirname, '../uploads/report-cards', report.path);
-            if (require('fs').existsSync(filePath)) {
-                require('fs').unlinkSync(filePath);
+
+            // Delete the file from Cloudinary using the public_id
+            if (report.cloudinaryPublicId) {
+                try {
+                    await cloudinary.uploader.destroy(report.cloudinaryPublicId, {
+                        resource_type: 'auto',
+                        invalidate: true
+                    });
+                } catch (cloudinaryErr) {
+                    console.error('Error deleting report card from Cloudinary:', cloudinaryErr);
+                    // Proceed with database deletion even if Cloudinary deletion fails
+                }
             }
-            
+
             await ReportCard.findByIdAndDelete(req.params.id);
-            
-            res.json({ 
-                success: true, 
-                message: 'Report card deleted successfully' 
+
+            res.json({
+                success: true,
+                message: 'Report card deleted successfully'
             });
         } catch (error) {
             console.error('Error deleting report card:', error);
-            res.status(500).json({ 
+            res.status(500).json({
                 success: false,
                 message: 'Server error',
                 error: error.message

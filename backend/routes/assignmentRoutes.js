@@ -2,6 +2,7 @@ const express = require('express');
 const { protect, authorize } = require('../middleware/auth');
 const Assignment = require('../models/Assignment');
 const upload = require('../middleware/upload');
+const cloudinary = require('cloudinary').v2;
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.post(
   async (req, res) => {
     try {
       const { title, description, dueDate, classAssigned } = req.body;
-      
+
       // Validate required fields
       if (!title || !dueDate || !classAssigned) {
         return res.status(400).json({
@@ -23,26 +24,32 @@ router.post(
         });
       }
 
+      // Cloudinary/CloudinaryStorage sets req.file.path to the full Cloudinary URL
+      // and req.file.filename/public_id to the Cloudinary public_id
+      const cloudinaryUrl = req.file ? req.file.path : null;
+      const publicId = req.file ? (req.file.filename || req.file.public_id) : null;
+
       const assignment = new Assignment({
         title,
         description,
         dueDate: new Date(dueDate),
         classAssigned,
         teacher: req.user.id,
-        file: req.file ? req.file.filename : null
+        file: cloudinaryUrl,
+        cloudinaryPublicId: publicId
       });
 
       await assignment.save();
-      
-      res.json({ 
-        msg: "Assignment created successfully!", 
-        assignment 
+
+      res.json({
+        msg: "Assignment created successfully!",
+        assignment
       });
     } catch (err) {
       console.error('Assignment creation error:', err);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to create assignment',
-        details: err.message 
+        details: err.message
       });
     }
   }
@@ -123,7 +130,7 @@ router.put('/:id', protect, authorize('teacher'), async (req, res) => {
 router.delete('/:id', protect, authorize('teacher'), async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id);
-    
+
     if (!assignment) {
       return res.status(404).json({ error: 'Assignment not found' });
     }
@@ -133,13 +140,39 @@ router.delete('/:id', protect, authorize('teacher'), async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to delete this assignment' });
     }
 
+    // Delete the assignment file from Cloudinary
+    if (assignment.cloudinaryPublicId) {
+      try {
+        await cloudinary.uploader.destroy(assignment.cloudinaryPublicId, {
+          resource_type: 'auto',
+          invalidate: true
+        });
+      } catch (cloudinaryErr) {
+        console.error('Error deleting assignment file from Cloudinary:', cloudinaryErr);
+      }
+    }
+
+    // Delete submission files from Cloudinary
+    for (const student of assignment.students) {
+      if (student.cloudinaryPublicId) {
+        try {
+          await cloudinary.uploader.destroy(student.cloudinaryPublicId, {
+            resource_type: 'auto',
+            invalidate: true
+          });
+        } catch (cloudinaryErr) {
+          console.error('Error deleting submission file from Cloudinary:', cloudinaryErr);
+        }
+      }
+    }
+
     await assignment.deleteOne();
     res.json({ msg: "Assignment deleted successfully!" });
   } catch (err) {
     console.error('Assignment deletion error:', err);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to delete assignment',
-      details: err.message 
+      details: err.message
     });
   }
 });
@@ -148,7 +181,7 @@ router.delete('/:id', protect, authorize('teacher'), async (req, res) => {
 router.post('/:id/submit', protect, authorize('student'), upload.single('submission-file'), async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id);
-    
+
     if (!assignment) {
       return res.status(404).json({ error: 'Assignment not found' });
     }
@@ -159,25 +192,31 @@ router.post('/:id/submit', protect, authorize('student'), upload.single('submiss
     );
 
     if (existingSubmission) {
-      return res.status(400).json({ 
-        error: 'You have already submitted this assignment' 
+      return res.status(400).json({
+        error: 'You have already submitted this assignment'
       });
     }
+
+    // Cloudinary/CloudinaryStorage sets req.file.path to the full Cloudinary URL
+    // and req.file.filename/public_id to the Cloudinary public_id
+    const cloudinaryUrl = req.file ? req.file.path : null;
+    const publicId = req.file ? (req.file.filename || req.file.public_id) : null;
 
     // Add new submission
     assignment.students.push({
       student: req.user.id,
       submissionDate: new Date(),
-      submissionFile: req.file ? req.file.filename : null
+      submissionFile: cloudinaryUrl,
+      cloudinaryPublicId: publicId
     });
 
     await assignment.save();
     res.json({ msg: "Assignment submitted successfully!" });
   } catch (err) {
     console.error('Assignment submission error:', err);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to submit assignment',
-      details: err.message 
+      details: err.message
     });
   }
 });

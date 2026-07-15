@@ -3,32 +3,35 @@ const mongoose = require('mongoose');
 const path = require('path');
 
 const reportCardSchema = new mongoose.Schema({
-  studentId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
+  studentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true,
     index: true
   },
-  studentName: { 
-    type: String, 
-    required: true 
+  studentName: {
+    type: String,
+    required: true
   },
-  year: { 
-    type: String, 
+  year: {
+    type: String,
     required: true,
     index: true
   },
-  term: { 
-    type: String, 
+  term: {
+    type: String,
     required: true,
     index: true
   },
-  comments: { 
-    type: String 
+  comments: {
+    type: String
   },
-  path: { 
-    type: String, 
-    required: true 
+  path: {
+    type: String,
+    required: true
+  },
+  cloudinaryPublicId: {
+    type: String // Cloudinary public_id for deletion
   },
   htmlPath: {
     type: String,
@@ -48,7 +51,7 @@ const reportCardSchema = new mongoose.Schema({
     type: String,
     default: ''
   }
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
@@ -57,6 +60,11 @@ const reportCardSchema = new mongoose.Schema({
 // Virtual for file URL
 reportCardSchema.virtual('fileUrl').get(function() {
   if (!this.path) return null;
+  // If path is already a full URL (Cloudinary), return it as-is
+  if (this.path.startsWith('http://') || this.path.startsWith('https://')) {
+    return this.path;
+  }
+  // Otherwise, return the local path (for backward compatibility)
   return `/uploads/report-cards/${this.path}`;
 });
 
@@ -71,7 +79,7 @@ reportCardSchema.pre('save', function(next) {
   if (this.studentName) {
     this.studentName = this.studentName.trim();
   }
-  
+
   // Ensure term is properly formatted (e.g., 'Term 1' instead of 'term 1')
   if (this.term) {
     this.term = this.term.trim();
@@ -80,7 +88,7 @@ reportCardSchema.pre('save', function(next) {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   }
-  
+
   next();
 });
 

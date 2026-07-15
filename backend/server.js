@@ -33,20 +33,14 @@ app.use(corsMiddleware);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Ensure upload directories exist
-const uploadsDir = path.join(__dirname, 'uploads');
-const profilePhotosDir = path.join(uploadsDir, 'profile-photos');
-const reportCardsDir = path.join(publicDir, 'uploads', 'report-cards');
+// Ensure public assets directories exist (for static files, not uploads)
 const publicAssetsDir = path.join(publicDir, 'assets');
 const cbcReportCardsDir = path.join(publicDir, 'downloads', 'report-cards');
-[uploadsDir, profilePhotosDir, reportCardsDir, publicAssetsDir, cbcReportCardsDir].forEach(dir => {
+[publicAssetsDir, cbcReportCardsDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
 // Static files
-app.use('/uploads', express.static(uploadsDir));
-app.use('/uploads/profile-photos', express.static(profilePhotosDir));
-app.use('/report-cards', express.static(reportCardsDir));
 app.use('/public/assets', express.static(publicAssetsDir));
 app.use('/downloads/report-cards', express.static(cbcReportCardsDir));
 

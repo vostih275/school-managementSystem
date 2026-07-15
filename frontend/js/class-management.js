@@ -53,7 +53,7 @@ async function createClass(form) {
         const formData = new FormData(form);
         const classData = Object.fromEntries(formData);
 
-        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/classes', {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/classes`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ async function createClass(form) {
 async function loadClasses() {
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/classes/teacher', {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/classes/teacher`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -122,7 +122,7 @@ function displayClasses(classes) {
 async function searchStudents(query) {
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/users/students?search=${encodeURIComponent(query)}`, {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/users/students?search=${encodeURIComponent(query)}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -168,7 +168,7 @@ async function addSelectedStudents() {
         }
 
         const classId = addStudentForm.dataset.classId;
-        const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/classes/${classId}/students`, {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/classes/${classId}/students`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

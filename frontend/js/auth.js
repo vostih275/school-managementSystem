@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = loginForm.querySelector('#password').value;
 
             try {
-                const response = await fetch((window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com') + '/api/auth/login', {
+                const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com'}/api/auth/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

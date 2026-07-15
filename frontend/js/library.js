@@ -207,7 +207,7 @@ async function loadLibraryWithFilters() {
                                 const status = formData.get('status') || 'available';
                                 const copies = parseInt(formData.get('copies')) || 1;
                                 try {
-                                    const res = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/library/${bookId}`, {
+                                    const res = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/library/${bookId}`, {
                                         method: 'PUT',
                                         headers: {
                                             'Content-Type': 'application/json',

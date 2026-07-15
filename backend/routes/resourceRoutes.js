@@ -1,50 +1,15 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { protect, authorize } = require('../middleware/auth');
-const Resource = require('../models/Resource'); // Ensure Resource model is imported
+const Resource = require('../models/Resource');
+const uploadCloudinary = require('../config/cloudinary');
+const cloudinary = require('cloudinary').v2;
 
 const router = express.Router();
 
-// Ensure the upload directory exists
-const uploadDir = path.join(__dirname, '../uploads/resources');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Multer file filter to allow only PDFs and DOC/DOCX
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-  if (!allowedTypes.includes(file.mimetype)) {
-    return cb(new Error('Only PDF, DOC, and DOCX files are allowed'), false);
-  }
-  if (file.size && file.size > 10 * 1024 * 1024) { // 10MB
-    return cb(new Error('File size must be less than 10MB'), false);
-  }
-  cb(null, true);
-};
-
-// Multer storage setup
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({ storage: storage, fileFilter: fileFilter }).single('resource');
-
 // POST route for uploading a file
-router.post('/upload', protect, authorize('teacher'), function (req, res, next) {
-  upload(req, res, function (err) {
-    if (err instanceof multer.MulterError) {
-      return res.status(400).json({ success: false, message: err.message });
-    } else if (err) {
-      return res.status(400).json({ success: false, message: err.message });
-    }
+router.post('/upload', protect, authorize('teacher'), uploadCloudinary.single('resource'), async (req, res) => {
+  try {
     if (!req.file) {
       return res.status(400).json({ msg: 'No file uploaded or invalid file type' });
     }
@@ -52,30 +17,34 @@ router.post('/upload', protect, authorize('teacher'), function (req, res, next) 
     // Get class from request body or user's profile
     const classAssigned = req.body.classAssigned || req.user.profile?.class || 'General';
 
-    // Save resource to the database
+    // Cloudinary/CloudinaryStorage sets req.file.path to the full Cloudinary URL
+    // and req.file.filename/public_id to the Cloudinary public_id
+    const cloudinaryUrl = req.file.path;
+    const publicId = req.file.filename || req.file.public_id;
+
+    // Save resource to the database with Cloudinary URL and public_id
     const newResource = new Resource({
       name: req.file.originalname,
-      path: req.file.filename,
+      path: cloudinaryUrl,
+      cloudinaryPublicId: publicId,
       classAssigned: classAssigned,
       uploadedBy: req.user._id,
     });
 
-    newResource.save()
-      .then(resource => {
-        res.status(200).json({
-          success: true,
-          message: 'Resource uploaded successfully',
-          resource: {
-            _id: resource._id,
-            name: resource.name,
-            path: resource.path,
-          },
-        });
-      })
-      .catch(error => {
-        res.status(500).json({ success: false, message: error.message });
-      });
-  });
+    await newResource.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Resource uploaded successfully',
+      resource: {
+        _id: newResource._id,
+        name: newResource.name,
+        path: newResource.path,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 // GET route for fetching uploaded resources (now from the database)
@@ -194,39 +163,43 @@ router.get('/', protect, async (req, res) => {
 // DELETE resource endpoint
 router.delete('/:resourceId', protect, authorize('teacher'), async (req, res) => {
   const { resourceId } = req.params;
-  
+
   try {
-    // First find the resource to get the filename
+    // First find the resource to get the Cloudinary public_id
     const resource = await Resource.findById(resourceId);
-    
+
     if (!resource) {
       return res.status(404).json({ success: false, msg: 'Resource not found in the database' });
     }
-    
-    const filePath = path.join(uploadDir, resource.path);
-    
-    // Delete the file from the filesystem
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    } else {
-      console.warn(`File not found at path: ${filePath}, but proceeding with database deletion`);
+
+    // Delete the file from Cloudinary using the public_id
+    if (resource.cloudinaryPublicId) {
+      try {
+        await cloudinary.uploader.destroy(resource.cloudinaryPublicId, {
+          resource_type: 'raw',
+          invalidate: true
+        });
+      } catch (cloudinaryErr) {
+        console.error('Error deleting from Cloudinary:', cloudinaryErr);
+        // Proceed with database deletion even if Cloudinary deletion fails
+      }
     }
 
     // Remove the resource from the database
     await Resource.findByIdAndDelete(resourceId);
 
     // Send success response
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       msg: 'Resource deleted successfully',
       resourceId: resourceId
     });
   } catch (err) {
-    console.error('Error deleting file or database record:', err);
-    res.status(500).json({ 
-      success: false, 
+    console.error('Error deleting resource:', err);
+    res.status(500).json({
+      success: false,
       msg: 'Failed to delete resource',
-      error: err.message 
+      error: err.message
     });
   }
 });

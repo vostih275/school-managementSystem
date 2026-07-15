@@ -7,7 +7,7 @@ const downloadBtns = document.getElementsByClassName('download-backup-btn');
 async function loadBackups() {
     const token = localStorage.getItem('token');
     try {
-        const res = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/backups', {
+        const res = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/backups`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const backups = await res.json();
@@ -42,7 +42,7 @@ if (backupBtn) {
         backupBtn.disabled = true;
         backupBtn.textContent = 'Backing up...';
         try {
-            const res = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/backups', {
+            const res = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/backups`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -67,13 +67,13 @@ backupList.addEventListener('click', async (e) => {
     if (!backupId) return;
     // Download Backup
     if (btn.classList.contains('download-backup-btn')) {
-        window.open(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/backups/${backupId}/download`, '_blank');
+        window.open(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/backups/${backupId}/download`, '_blank');
     }
     // Restore Backup
     else if (btn.classList.contains('restore-backup-btn')) {
         if (confirm('Are you sure you want to restore this backup? This will overwrite current data.')) {
             try {
-                const res = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/backups/${backupId}/restore`, {
+                const res = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/backups/${backupId}/restore`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

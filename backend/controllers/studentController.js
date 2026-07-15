@@ -313,47 +313,26 @@ exports.uploadProfilePhoto = async (req, res) => {
         }
 
         const userId = req.user.id;
-        const filename = req.file.filename;
-        
-        // Store relative path in the database
-        const photoPath = `/uploads/profile-photos/${filename}`;
-        
-        // Get the base URL (e.g., http://localhost:5000)
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const fullPhotoUrl = `${baseUrl}${photoPath}`;
+        // Cloudinary/CloudinaryStorage sets req.file.path to the full Cloudinary URL
+        // and req.file.filename/public_id to the Cloudinary public_id
+        const cloudinaryUrl = req.file.path;
+        const publicId = req.file.filename || req.file.public_id;
 
-        // Update user's profile photo with both full URL and relative path
+        // Update user's profile photo with the Cloudinary URL and public_id
         await User.findByIdAndUpdate(userId, {
             $set: { 
-                'profile.photo': fullPhotoUrl,
-                'profile.photoPath': photoPath, // Store relative path for future reference
+                'profile.photo': cloudinaryUrl,
+                'profile.photoPath': publicId, // Store Cloudinary public_id for future reference
                 'profile.originalFilename': req.file.originalname,
                 'profile.photoUploadedAt': new Date()
             }
         });
-        
-        // Delete old profile photo if it exists and is different
-        const user = await User.findById(userId);
-        if (user?.profile?.photoPath && user.profile.photoPath !== photoPath) {
-            try {
-                const fs = require('fs');
-                const path = require('path');
-                const oldPhotoPath = path.join(__dirname, '..', user.profile.photoPath);
-                if (fs.existsSync(oldPhotoPath)) {
-                    fs.unlinkSync(oldPhotoPath);
-                    console.log(`Deleted old profile photo: ${oldPhotoPath}`);
-                }
-            } catch (err) {
-                console.error('Error deleting old profile photo:', err);
-                // Don't fail the request if deletion fails
-            }
-        }
 
         res.json({
             success: true,
             message: 'Profile photo updated successfully',
-            photoUrl: fullPhotoUrl,
-            photoPath: photoPath
+            photoUrl: cloudinaryUrl,
+            photoPath: publicId
         });
     } catch (err) {
         console.error('Error uploading profile photo:', err);

@@ -1,8 +1,7 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { protect, authorize } = require('../middleware/auth');
+const uploadCloudinary = require('../config/cloudinary');
 const { 
     getStudents, 
     getStudentsByClass,
@@ -11,53 +10,6 @@ const {
     changePassword,
     uploadProfilePhoto 
 } = require('../controllers/studentController');
-
-// Configure multer for file uploads
-const uploadsDir = path.join(__dirname, '..', 'uploads', 'profile-photos');
-
-// Ensure the uploads directory exists
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadsDir);
-    },
-    filename: (req, file, cb) => {
-        // Get the user's email from the authenticated request
-        const userEmail = req.user?.email || 'unknown';
-        // Sanitize the email to be filesystem-safe
-        const sanitizedEmail = userEmail
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, '-')  // Replace special characters with hyphens
-            .replace(/-+/g, '-')          // Replace multiple hyphens with a single one
-            .replace(/^-+|-+$/g, '');     // Remove leading/trailing hyphens
-            
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9).toString(36);
-        const ext = path.extname(file.originalname).toLowerCase();
-        
-        // Format: profile-{sanitized-email}-{timestamp}-{random}.{ext}
-        const filename = `profile-${sanitizedEmail}-${uniqueSuffix}${ext}`;
-        cb(null, filename);
-    }
-});
-
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-    fileFilter: (req, file, cb) => {
-        const filetypes = /jpeg|jpg|png|gif/;
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = filetypes.test(file.mimetype);
-        
-        if (extname && mimetype) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed (jpeg, jpg, png, gif)'));
-        }
-    }
-});
 
 const router = express.Router();
 
@@ -113,7 +65,7 @@ router.put('/profile', protect, (req, res, next) => {
 // Student Profile Photo Upload
 router.post('/profile/photo', 
     protect, 
-    upload.single('photo'), 
+    uploadCloudinary.single('photo'), 
     uploadProfilePhoto,
     (err, req, res, next) => {
         // Handle multer errors specifically

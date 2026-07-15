@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const formData = new FormData(createHomeworkForm);
                 
                 // Prepare the request
-                const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/homeworks', {
+                const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/homeworks`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const formData = new FormData(createAssignmentForm);
                 
                 // Prepare the request
-                const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/assignments', {
+                const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/assignments`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/homeworks', {
+      const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/homeworks`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/assignments', {
+      const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/assignments`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -405,7 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.appendChild(loadingModal);
 
       try {
-        const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/homeworks/${homeworkId}`, {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/homeworks/${homeworkId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -737,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       console.log('Submitting grade:', { homeworkId, submissionId, grade, comments });
       
-      const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/homeworks/grade/${homeworkId}/${submissionId}`, {
+      const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/homeworks/grade/${homeworkId}/${submissionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -796,7 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/homeworks/${homeworkId}`, {
+      const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/homeworks/${homeworkId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -827,7 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/homeworks/${homeworkId}`, {
+      const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/homeworks/${homeworkId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -885,7 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const formData = new FormData(editForm);
           
           try {
-            const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/homeworks/${homeworkId}`, {
+            const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/homeworks/${homeworkId}`, {
               method: 'PUT',
               headers: {
                 'Authorization': `Bearer ${token}`
@@ -1426,7 +1426,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (isEditMode && classId) {
           // Update existing class
-          response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/classes/${classId}`, {
+          response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/classes/${classId}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -1436,7 +1436,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         } else {
           // Create new class
-          response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/classes', {
+          response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/classes`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1481,7 +1481,7 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error('No authentication token found');
         }
 
-        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/classes', {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/classes`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -1566,7 +1566,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('No authentication token found');
               }
 
-              const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/classes/${classId}`, {
+              const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/classes/${classId}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${token}`
@@ -2306,7 +2306,7 @@ async fetchAssignments() {
     if (!token) {
       throw new Error('No token found. Please log in again!');
     }
-    const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/assignments', {
+    const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/assignments`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -2349,7 +2349,7 @@ async createAssignment() {
   try {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('No token found. Please log in again!');
-    const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/assignments', {
+    const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/assignments`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -2562,7 +2562,7 @@ initAnnouncementManagement() {
 postAnnouncement(text) {
   const token = localStorage.getItem('token');
 
-  fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/announcements', {
+  fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/announcements`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -2593,7 +2593,7 @@ postAnnouncement(text) {
 fetchAnnouncements() {
   const token = localStorage.getItem('token');
 
-  fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/announcements', {
+  fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/announcements`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -2693,7 +2693,7 @@ fetchAnnouncements() {
           throw new Error('No token found. Please log in again!');
         }
         
-        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/announcements', {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/announcements`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -2733,7 +2733,7 @@ fetchAnnouncements() {
           throw new Error('No token found. Please log in again!');
         }
         
-        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/announcements', {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/announcements`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -2859,7 +2859,7 @@ fetchAnnouncements() {
           throw new Error('No token found. Please log in again!');
         }
         
-        const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/announcements/${announcementId}`, {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/announcements/${announcementId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -3120,7 +3120,7 @@ fetchAnnouncements() {
         formData.append('reportCard', fileInput.files[0]);
         try {
           const token = localStorage.getItem('token');
-          const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/report-cards', {
+          const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/report-cards`, {
             method: 'POST',
             headers: token ? { 'Authorization': 'Bearer ' + token } : {},
             body: formData
@@ -3146,7 +3146,7 @@ fetchAnnouncements() {
         }
 
         // Get all students with their classes
-        const studentsResponse = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/students', {
+        const studentsResponse = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/students`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -3275,7 +3275,7 @@ fetchAnnouncements() {
     async loadStudentsForReportCardDropdown() {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/students', {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/students`, {
           headers: token ? { 'Authorization': 'Bearer ' + token } : {}
         });
         const students = await response.json();
@@ -3374,7 +3374,7 @@ const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
         return;
       }
       
-      const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/grades', {
+      const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/grades`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3409,7 +3409,7 @@ const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
         return;
       }
       
-      const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/grades', {
+      const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/grades`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -3690,7 +3690,7 @@ const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
       
       try {
         // Send the report card to the backend for PDF generation and storage
-        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/report-cards/generate', {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/report-cards/generate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -4095,7 +4095,7 @@ const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
       }
       
       // Fetch students from the API
-      const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/students', {
+      const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/students`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -4366,7 +4366,7 @@ const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
       statusMessage.className = 'alert alert-info';
       
       // Send the report card to the backend for PDF generation
-      const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/report-cards', {
+      const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/report-cards`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

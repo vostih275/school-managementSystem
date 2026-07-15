@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Base API URL - Make sure this matches your backend server port
-    const API_BASE_URL = (window.API_CONFIG?.BASE_URL || '') + '/api';
+    const API_BASE_URL = `${window.API_CONFIG?.BASE_URL || ''}/api`;
     
     // Show notification function
     function showNotification(message, type = 'info') {

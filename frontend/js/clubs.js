@@ -249,7 +249,7 @@ async function removeClubMember(clubId, memberId, memberName) {
         // Ensure both IDs are properly encoded
         const encodedClubId = encodeURIComponent(clubId);
         const encodedMemberId = encodeURIComponent(memberId);
-        const url = `(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/clubs/${encodedClubId}/members/${encodedMemberId}`;
+        const url = `${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/clubs/${encodedClubId}/members/${encodedMemberId}`;
         console.log('Making DELETE request to:', url);
         console.log('Request headers:', {
             'Authorization': `Bearer ${token}`,
@@ -487,7 +487,7 @@ async function loadClubMembers(clubId, clubName) {
         }
 
         console.log('Making request to fetch club members...');
-        const response = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/clubs/${clubId}/students`, {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/clubs/${clubId}/students`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -982,7 +982,7 @@ async function loadStudentsForClub() {
     }
     
     try {
-        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/students', {
+        const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/students`, {
             method: 'GET',
             headers: { 
                 'Authorization': `Bearer ${token}`,
@@ -1088,7 +1088,7 @@ async function addStudentsToClub(studentIds) {
     }
 
     try {
-        const endpoint = `(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/clubs/${currentClubId}/students`;
+        const endpoint = `${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/clubs/${currentClubId}/students`;
         console.log('Making request to:', endpoint, 'with data:', { students: studentIds });
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -1235,7 +1235,7 @@ function buildClubQueryString(filters) {
 async function loadClubsWithFilters() {
     const token = localStorage.getItem('token');
     const filters = getClubFilters();
-    let url = (window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/clubs' + buildClubQueryString(filters);
+    let url = `${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/clubs${buildClubQueryString(filters)}`;
     try {
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         const clubs = await res.json();
@@ -1295,7 +1295,7 @@ if (clubsBulkDelete) {
             const token = localStorage.getItem('token');
             for (const clubId of selectedClubIds) {
                 try {
-                    await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/clubs/${clubId}`, {
+                    await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/clubs/${clubId}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -1312,7 +1312,7 @@ if (clubsBulkExport) {
     clubsBulkExport.onclick = async function() {
         if (selectedClubIds.size === 0) return;
         const token = localStorage.getItem('token');
-        let url = (window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/clubs';
+        let url = `${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/clubs`;
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         const clubs = await res.json();
         const selected = clubs.filter(c => selectedClubIds.has(c._id));
@@ -1336,7 +1336,7 @@ async function handleClubFormSubmit(e) {
     const description = document.getElementById('club-description').value;
     const token = localStorage.getItem('token');
     try {
-        const res = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/clubs', {
+        const res = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/clubs`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1380,7 +1380,7 @@ async function handleClubListClick(e) {
             const name = formData.get('name');
             const description = formData.get('description');
             try {
-                const res = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/clubs/${clubId}`, {
+                const res = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/clubs/${clubId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1416,7 +1416,7 @@ async function handleClubListClick(e) {
         universalConfirmYes.onclick = async () => {
             closeUniversalModal(universalConfirmModal);
             try {
-                const res = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/clubs/${clubId}`, {
+                const res = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/clubs/${clubId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

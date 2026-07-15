@@ -7,11 +7,13 @@ const AssignmentSchema = new mongoose.Schema({
     classAssigned: { type: String, required: true },
     teacher: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     file: { type: String, required: false },
+    cloudinaryPublicId: { type: String }, // Cloudinary public_id for deletion
     students: [{
         student: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         grade: { type: Number },
         submissionDate: { type: Date },
-        submissionFile: { type: String }
+        submissionFile: { type: String },
+        cloudinaryPublicId: { type: String } // Cloudinary public_id for submission file deletion
     }]
 }, { timestamps: true });
 

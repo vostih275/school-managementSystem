@@ -77,7 +77,7 @@ class AdminAttendanceManager {
                 end: endDate
             });
             
-            const url = `(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/attendance/history?${params.toString()}`;
+            const url = `${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/attendance/history?${params.toString()}`;
             console.log('Fetching attendance data from:', url);
             
             const response = await fetch(url, {

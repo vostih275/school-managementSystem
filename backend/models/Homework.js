@@ -28,6 +28,9 @@ const HomeworkSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  cloudinaryPublicId: {
+    type: String // Cloudinary public_id for deletion
+  },
   submissions: [{
     student: {
       type: mongoose.Schema.Types.ObjectId,
@@ -37,6 +40,9 @@ const HomeworkSchema = new mongoose.Schema({
     file: {
       type: String,
       trim: true
+    },
+    cloudinaryPublicId: {
+      type: String // Cloudinary public_id for submission file deletion
     },
     originalFilename: {
       type: String,

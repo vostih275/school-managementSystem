@@ -1,44 +1,8 @@
 const express = require('express');
 const { protect, authorize } = require('../middleware/auth');
 const Homework = require('../models/Homework');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-// Configure upload directory for homework submissions
-const homeworkUploadDir = path.join(__dirname, '..', 'uploads', 'homeworks');
-
-// Create directory if it doesn't exist
-if (!fs.existsSync(homeworkUploadDir)) {
-  fs.mkdirSync(homeworkUploadDir, { recursive: true });
-}
-
-// Configure multer for homework submissions
-const homeworkUpload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, homeworkUploadDir);
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const ext = path.extname(file.originalname);
-      cb(null, 'submission-' + uniqueSuffix + ext);
-    }
-  }),
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-    files: 1
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedTypes.includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF, Word documents, and images are allowed'));
-    }
-  }
-});
+const uploadCloudinary = require('../config/cloudinary');
+const cloudinary = require('cloudinary').v2;
 
 const router = express.Router();
 
@@ -47,11 +11,11 @@ router.post(
   '/',
   protect,
   authorize('teacher'),
-  homeworkUpload.single('homework-file'),
+  uploadCloudinary.single('homework-file'),
   async (req, res) => {
     try {
       const { title, description, dueDate, classAssigned } = req.body;
-      
+
       // Validate required fields
       if (!title || !dueDate || !classAssigned) {
         return res.status(400).json({
@@ -60,26 +24,32 @@ router.post(
         });
       }
 
+      // Cloudinary/CloudinaryStorage sets req.file.path to the full Cloudinary URL
+      // and req.file.filename/public_id to the Cloudinary public_id
+      const cloudinaryUrl = req.file ? req.file.path : null;
+      const publicId = req.file ? (req.file.filename || req.file.public_id) : null;
+
       const homework = new Homework({
         title,
         description,
         dueDate: new Date(dueDate),
         classAssigned,
         teacher: req.user.id,
-        file: req.file ? `/uploads/homeworks/${req.file.filename}` : null
+        file: cloudinaryUrl,
+        cloudinaryPublicId: publicId
       });
 
       await homework.save();
-      
-      res.json({ 
-        msg: "Homework created successfully!", 
-        homework 
+
+      res.json({
+        msg: "Homework created successfully!",
+        homework
       });
     } catch (err) {
       console.error('Homework creation error:', err);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to create homework',
-        details: err.message 
+        details: err.message
       });
     }
   }
@@ -122,7 +92,7 @@ router.post(
   '/submit/:homeworkId',
   protect,
   authorize('student'),
-  homeworkUpload.single('submission-file'),
+  uploadCloudinary.single('submission-file'),
   async (req, res) => {
     try {
       const homework = await Homework.findById(req.params.homeworkId);
@@ -141,23 +111,29 @@ router.post(
         });
       }
 
+      // Cloudinary/CloudinaryStorage sets req.file.path to the full Cloudinary URL
+      // and req.file.filename/public_id to the Cloudinary public_id
+      const cloudinaryUrl = req.file ? req.file.path : null;
+      const publicId = req.file ? (req.file.filename || req.file.public_id) : null;
+
       homework.submissions.push({
         student: req.user.id,
-        file: req.file ? req.file.filename : null,
+        file: cloudinaryUrl,
+        cloudinaryPublicId: publicId,
         submittedAt: new Date()
       });
 
       await homework.save();
-      
+
       res.json({
         msg: 'Homework submitted successfully!',
         submission: homework.submissions[homework.submissions.length - 1]
       });
     } catch (err) {
       console.error('Homework submission error:', err);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to submit homework',
-        details: err.message 
+        details: err.message
       });
     }
   }
@@ -245,12 +221,40 @@ router.delete(
   authorize('teacher'),
   async (req, res) => {
     try {
-      const homework = await Homework.findByIdAndDelete(req.params.id);
-      
+      const homework = await Homework.findById(req.params.id);
+
       if (!homework) {
         return res.status(404).json({ error: 'Homework not found' });
       }
-      
+
+      // Delete the homework file from Cloudinary
+      if (homework.cloudinaryPublicId) {
+        try {
+          await cloudinary.uploader.destroy(homework.cloudinaryPublicId, {
+            resource_type: 'auto',
+            invalidate: true
+          });
+        } catch (cloudinaryErr) {
+          console.error('Error deleting homework file from Cloudinary:', cloudinaryErr);
+        }
+      }
+
+      // Delete submission files from Cloudinary
+      for (const submission of homework.submissions) {
+        if (submission.cloudinaryPublicId) {
+          try {
+            await cloudinary.uploader.destroy(submission.cloudinaryPublicId, {
+              resource_type: 'auto',
+              invalidate: true
+            });
+          } catch (cloudinaryErr) {
+            console.error('Error deleting submission file from Cloudinary:', cloudinaryErr);
+          }
+        }
+      }
+
+      await Homework.findByIdAndDelete(req.params.id);
+
       res.json({
         msg: 'Homework deleted successfully!'
       });

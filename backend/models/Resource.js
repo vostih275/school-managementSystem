@@ -5,13 +5,14 @@ const mongoose = require('mongoose');
 const resourceSchema = new mongoose.Schema({
   name: { type: String, required: true },
   path: { type: String, required: true },
-  classAssigned: { 
-    type: String, 
+  cloudinaryPublicId: { type: String }, // Cloudinary public_id for deletion
+  classAssigned: {
+    type: String,
     required: true,
     trim: true
   },
-  uploadedBy: { 
-    type: mongoose.Schema.Types.ObjectId, 
+  uploadedBy: {
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },

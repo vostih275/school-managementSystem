@@ -852,8 +852,7 @@ document.addEventListener('DOMContentLoaded', function () {
           const li = document.createElement("li");
           const link = document.createElement("a");
 
-          const _base = window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com';
-          link.href = `${_base}/uploads/resources/${resource.path}`;
+          link.href = resource.path;
           link.textContent = resource.name;
           link.setAttribute('download', resource.name);
 

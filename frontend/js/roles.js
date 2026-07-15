@@ -88,7 +88,7 @@ async function loadRolesWithFilters() {
 
     const token = localStorage.getItem('token');
     const filters = getRolesFilters();
-    let url = (window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/roles' + buildRolesQueryString(filters);
+    let url = `${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/roles${buildRolesQueryString(filters)}`;
     try {
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         
@@ -155,7 +155,7 @@ if (roleForm) {
         const permissions = document.getElementById('role-permissions').value.split(',').map(p => p.trim());
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/roles', {
+            const res = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/roles`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -201,7 +201,7 @@ roleTableBody.addEventListener('click', async (e) => {
             const name = formData.get('name');
             const permissions = formData.get('permissions').split(',').map(p => p.trim());
             try {
-                const res = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/roles/${roleId}`, {
+                const res = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/roles/${roleId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -236,7 +236,7 @@ roleTableBody.addEventListener('click', async (e) => {
         openUniversalModal(universalConfirmModal);
         universalConfirmYes.onclick = async () => {
             try {
-                const res = await fetch(`(window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + "/api"api/roles/${roleId}`, {
+                const res = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/roles/${roleId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -261,7 +261,7 @@ if (rolesBulkDelete) {
         if (!confirm('Are you sure you want to delete the selected roles?')) return;
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch((window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/roles', {
+            const res = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/roles`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -286,7 +286,7 @@ if (rolesBulkExport) {
     rolesBulkExport.onclick = async function() {
         if (selectedRoleIds.size === 0) return;
         const token = localStorage.getItem('token');
-        let url = (window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api/roles';
+        let url = `${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/roles`;
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         const roles = await res.json();
         const selected = roles.filter(r => selectedRoleIds.has(r._id));
