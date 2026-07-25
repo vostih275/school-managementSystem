@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   admissionNumber: { type: String, trim: true },
+  assessmentNumber: { type: String, unique: true, sparse: true },
   password: { type: String, required: true },
   role: { 
     type: String, 
