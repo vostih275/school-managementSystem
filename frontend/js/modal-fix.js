@@ -650,9 +650,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     localStorage.setItem('role', role);
                 }
                 
-                try {
-                    // Clean the token (remove any quotes or extra spaces)
-                    const cleanToken = token.replace(/^['"]|['"]$/g, '').trim();
+                // Clean the token (remove any quotes or extra spaces)
+                const cleanToken = token.replace(/^['"]|['"]$/g, '').trim();
                     
                     // Prepare the request with different auth header formats
                     const requestOptions = {
@@ -719,38 +718,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     console.log('Response status:', response.status, response.statusText);
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        const errorMessage = errorData.msg || errorData.message || 'Failed to save marks';
-                        console.error('API Error:', {
-                            status: response.status,
-                            statusText: response.statusText,
-                            error: errorData
-                        });
-
-                        console.log(`Auth method ${attempt.name} status:`, attemptResponse.status);
-
-                        if (attemptResponse.ok) {
-                            response = attemptResponse;
-                            break; // Success!
-                        }
-
-                        const errorData = await attemptResponse.json().catch(() => ({}));
-                        lastError = errorData.msg || errorData.message || attemptResponse.statusText;
-                        console.warn(`Auth method ${attempt.name} failed:`, lastError);
-
-                    } catch (error) {
-                        console.error(`Error with auth method ${attempt.name}:`, error);
-                        lastError = error.message;
-                    }
-                }
-
-                if (!response) {
-                    throw new Error(lastError || 'All authentication methods failed');
-                }
-
-                console.log('Response status:', response.status, response.statusText);
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));

@@ -1,6 +1,6 @@
 // API Configuration - use var to allow redefinition if needed
 if (typeof window.API_BASE_URL === 'undefined') {
-  window.API_BASE_URL = window.API_CONFIG?.BASE_URL || '';
+  window.API_BASE_URL = window.API_CONFIG?.BASE_URL || window.location.origin;
 }
 
 // Initialize the resources page
