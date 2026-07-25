@@ -1,6 +1,6 @@
 // API Configuration - use var to allow redefinition if needed
 if (typeof window.API_BASE_URL === 'undefined') {
-  window.API_BASE_URL = window.API_CONFIG?.BASE_URL || '';
+  window.API_BASE_URL = window.API_CONFIG?.BASE_URL || window.location.origin;
 }
 
 // Initialize the resources page
@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     uploadForm.addEventListener('submit', handleFileUpload);
     
     // Set default class if user has a class assigned
+    const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
     if (userProfile.class) {
       const classSelect = document.getElementById('class-select');
       if (classSelect) {
@@ -88,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // Global variables
 let availableClasses = [];
 let userClass = null;
-let resourcesData = [];
 
 // Cancel the upload process
 const cancelBtn = document.getElementById('cancel-upload-btn');
@@ -468,7 +468,7 @@ async function loadResources(selectedClass = null) {
               <div class="resource-icon">${icon}</div>
               <div class="resource-content">
                 <div class="resource-name" title="${resource.name}">
-                  <a href="${resource.path}" target="_blank">
+                  <a href="${window.API_BASE_URL}/uploads/resources/${resource.path}" target="_blank">
                     ${resource.name}
                   </a>
                 </div>
@@ -476,7 +476,7 @@ async function loadResources(selectedClass = null) {
                 ${uploaderInfo}
               </div>
               <div class="resource-actions">
-                <a href="${resource.path}" download class="download-btn" title="Download">
+                <a href="${window.API_BASE_URL}/uploads/resources/${resource.path}" download class="download-btn" title="Download">
                   <i class="fas fa-download"></i>
                 </a>
                 ${resource.canDelete ? `
@@ -559,23 +559,20 @@ function deleteResource(resourceId) {
 
 // Add progress bar and message container
 window.addEventListener('DOMContentLoaded', () => {
-  const uploadFormContainer = document.getElementById('upload-form-container');
-  if (uploadFormContainer) {
-    if (!document.getElementById('upload-progress')) {
-      const progress = document.createElement('progress');
-      progress.id = 'upload-progress';
-      progress.max = 100;
-      progress.value = 0;
-      progress.style.display = 'none';
-      uploadFormContainer.appendChild(progress);
-    }
-    if (!document.getElementById('resource-upload-msg')) {
-      const msg = document.createElement('div');
-      msg.id = 'resource-upload-msg';
-      msg.style.display = 'none';
-      msg.style.marginTop = '8px';
-      uploadFormContainer.appendChild(msg);
-    }
+  if (!document.getElementById('upload-progress')) {
+    const progress = document.createElement('progress');
+    progress.id = 'upload-progress';
+    progress.max = 100;
+    progress.value = 0;
+    progress.style.display = 'none';
+    document.getElementById('upload-form-container').appendChild(progress);
+  }
+  if (!document.getElementById('resource-upload-msg')) {
+    const msg = document.createElement('div');
+    msg.id = 'resource-upload-msg';
+    msg.style.display = 'none';
+    msg.style.marginTop = '8px';
+    document.getElementById('upload-form-container').appendChild(msg);
   }
 });
 

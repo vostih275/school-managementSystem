@@ -11,9 +11,10 @@
   <link rel="stylesheet" href="../css/style.css">
   <!-- Font Awesome for icons -->
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyJtc4FZQ5nP3/h/4z1ypFJtW9r4C" crossorigin="anonymous" referrerpolicy="no-referrer" 
-        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyJtc4FZQ5nP3/h/4z1ypFJtW9r4C" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
+  <!-- API Configuration - must load before any script that reads window.API_CONFIG -->
+  <script src="../js/config.js"></script>
   
   <!-- Libraries for report downloads -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -3939,9 +3940,6 @@
     </section>
   </main>
 
-  <!-- Add the teacher.js script -->
-  <script src="../js/teacher.js"></script>
-  
   <style>
     /* Loading spinner */
     @keyframes spin {
@@ -4424,7 +4422,6 @@
   
   <!-- Custom Scripts -->
   <script src="../js/teacher.js"></script>
-  <script src="../js/report-cards.js"></script>
   <script src="../js/modal-fix.js"></script>
   <script src="../js/resources.js"></script>
   <script src="../js/assignments.js"></script>
@@ -5203,3 +5200,4 @@
   </main>
 </body>
 </html>
+
