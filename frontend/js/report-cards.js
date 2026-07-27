@@ -488,6 +488,9 @@ function updateReportCardPreview(reportData) {
         const deleteMarksBtn = document.getElementById('delete-marks');
         if (deleteMarksBtn) deleteMarksBtn.style.display = 'inline-block';
 
+        const printReportBtn = document.getElementById('print-report-card');
+        if (printReportBtn) printReportBtn.style.display = 'inline-block';
+
         const sendBtn = document.getElementById('send-to-student');
         if (sendBtn) sendBtn.style.display = 'inline-block';
 
