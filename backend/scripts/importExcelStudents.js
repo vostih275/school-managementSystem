@@ -1,6 +1,7 @@
 const XLSX = require('xlsx');
 const fs = require('fs');
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const User = require('../models/User');
 
@@ -80,6 +81,8 @@ async function processExcelFile() {
       process.exit(0);
     }
 
+    const defaultPassword = await bcrypt.hash('123456', 10);
+
     let currentCounter = startingAdmissionNumber;
     let successCount = 0;
     let errorCount = 0;
@@ -129,10 +132,11 @@ async function processExcelFile() {
           class: className,
           admissionNumber: String(currentCounter).padStart(3, '0'), // Generate sequential admission number
           role: 'student',
-          password: 'password123', // Default password
+          password: defaultPassword, // Pre-hashed default password for login
           classAssigned: className,
           profile: {
-            gender: 'Female'
+            gender: 'Female',
+            class: className
           }
         };
 
