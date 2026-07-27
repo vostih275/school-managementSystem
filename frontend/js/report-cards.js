@@ -357,7 +357,7 @@ function updateReportCardPreview(reportData) {
                     <h1 style="margin: 0; font-size: 22px; font-weight: bold; text-transform: uppercase;">AIC LOKICHOGGIO GIRLS JUNIOR SCHOOL</h1>
                     <p style="margin: 5px 0 0 0; font-size: 14px;">
                         P.O BOX 11-30503, LOKICHOGGIO. &nbsp;|&nbsp;
-                        <span style="font-size: 16px;">&#9742;</span> TEL: 0745994826 / 0708474334
+                        <i class="fas fa-phone" style="font-size:16px; margin-right:5px;"></i> TEL: 0745994826 / 0708474334
                     </p>
                     <p style="margin: 2px 0 0 0; font-size: 14px;">E-mail: aiclokichoggiogirls@gmail.com</p>
                     <p style="margin: 5px 0 0 0; font-size: 15px; font-style: italic; font-weight: bold;">MOTTO: Strive for excellence</p>
