@@ -5022,13 +5022,31 @@
       initializeMarksEntrySystem();
     }
 
-    // Helper function to calculate grade from marks
-    function calculateGradeFromMarks(marks) {
+    // Helper function to calculate grade from marks (Primary or JSS CBC rubric)
+    function calculateGradeFromMarks(marks, className) {
+        const cls = className || document.getElementById('marks-class')?.value || '';
+        const isJss = /^Grade\s*[7-9]$/i.test(cls);
+
+        const numericMarks = Number(marks);
+        if (isNaN(numericMarks)) return 'N/A';
+
+        if (isJss) {
+            if (numericMarks >= 90) return 'EE1';
+            if (numericMarks >= 75) return 'EE2';
+            if (numericMarks >= 58) return 'ME1';
+            if (numericMarks >= 41) return 'ME2';
+            if (numericMarks >= 31) return 'AE1';
+            if (numericMarks >= 21) return 'AE2';
+            if (numericMarks >= 11) return 'BE1';
+            if (numericMarks >= 1) return 'BE2';
+            return 'BE2';
+        }
+
         // Primary school expectation-based grading scale (0-100)
-        if (marks >= 85) return 'Exceeds Expectations';
-        else if (marks >= 70) return 'Meets Expectations';
-        else if (marks >= 55) return 'Approaches Expectations';
-        else return 'Below Expectations';
+        if (numericMarks >= 85) return 'Exceeds Expectations';
+        if (numericMarks >= 70) return 'Meets Expectations';
+        if (numericMarks >= 55) return 'Approaches Expectations';
+        return 'Below Expectations';
     }
 
     // Function to save marks using student ID and term

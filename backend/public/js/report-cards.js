@@ -1,9 +1,5 @@
 // API base URL - resolved from global config set by config.js
-if (typeof API_BASE_URL === 'undefined') {
-    window.API_BASE_URL = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL)
-        ? window.API_CONFIG.API_BASE_URL
-        : '/api';
-}
+const apiBase = (window.API_CONFIG?.API_BASE_URL || '/api').replace(/\/$/, '');
 
 // Function to show alert messages
 function showAlert(message, type = 'info') {
@@ -142,8 +138,8 @@ async function loadStudentsForReportCard(className) {
             throw new Error('Not authenticated. Please log in again.');
         }
         
-        console.log('Fetching students from:', `${API_BASE_URL}/students/class/${encodeURIComponent(className)}`);
-        const response = await fetch(`${API_BASE_URL}/students/class/${encodeURIComponent(className)}`, {
+        console.log('Fetching students from:', `${apiBase}/students/class/${encodeURIComponent(className)}`);
+        const response = await fetch(`${apiBase}/students/class/${encodeURIComponent(className)}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -203,12 +199,46 @@ async function loadStudentsForReportCard(className) {
     }
 }
 
+function isJuniorSecondaryClass(className) {
+    return /^Grade\s*[7-9]$/i.test(className);
+}
+
 // Helper function to calculate grade from marks
-function calculateGradeFromMarks(marks) {
-    const numericMarks = parseFloat(marks) || 0;
-    if (numericMarks >= 70) return 'Exceed Expectation';
-    if (numericMarks >= 50) return 'Meet Expectation';
-    return 'Below Expectation';
+function calculateGradeFromMarks(marks, className) {
+    const numericMarks = parseFloat(marks);
+    if (isNaN(numericMarks)) return 'N/A';
+
+    if (isJuniorSecondaryClass(className)) {
+        if (numericMarks >= 90) return 'EE1';
+        if (numericMarks >= 75) return 'EE2';
+        if (numericMarks >= 58) return 'ME1';
+        if (numericMarks >= 41) return 'ME2';
+        if (numericMarks >= 31) return 'AE1';
+        if (numericMarks >= 21) return 'AE2';
+        if (numericMarks >= 11) return 'BE1';
+        if (numericMarks >= 1) return 'BE2';
+        return 'BE2';
+    }
+
+    if (numericMarks >= 85) return 'Exceeds Expectations';
+    if (numericMarks >= 70) return 'Meets Expectations';
+    if (numericMarks >= 55) return 'Approaches Expectations';
+    return 'Below Expectations';
+}
+
+function calculatePointsFromMarks(marks, className) {
+    const numericMarks = parseFloat(marks);
+    if (isNaN(numericMarks) || !isJuniorSecondaryClass(className)) return '-';
+
+    if (numericMarks >= 90) return 8;
+    if (numericMarks >= 75) return 7;
+    if (numericMarks >= 58) return 6;
+    if (numericMarks >= 41) return 5;
+    if (numericMarks >= 31) return 4;
+    if (numericMarks >= 21) return 3;
+    if (numericMarks >= 11) return 2;
+    if (numericMarks >= 1) return 1;
+    return 1;
 }
 
 // Helper function to get grade remarks (kept for backward compatibility)
@@ -291,8 +321,9 @@ function updateReportCardPreview(reportData) {
                     const subjectAverage = item.subjectAverage !== undefined && item.subjectAverage !== null
                         ? item.subjectAverage
                         : (item.marks !== undefined && item.marks !== null ? item.marks : null);
-                    const grade = item.grade || (typeof subjectAverage === 'number' ? calculateGradeFromMarks(subjectAverage) : 'N/A');
-                    const points = item.points !== undefined && item.points !== null ? item.points : '-';
+                    const isJss = isJuniorSecondaryClass(className);
+                    const grade = item.grade || (typeof subjectAverage === 'number' ? calculateGradeFromMarks(subjectAverage, className) : 'N/A');
+                    const points = isJss ? (item.points !== undefined && item.points !== null ? item.points : calculatePointsFromMarks(subjectAverage, className)) : '-';
                     const subjectPosition = item.subjectPosition !== undefined ? item.subjectPosition : null;
                     const totalStudents = item.totalStudents !== undefined ? item.totalStudents : payload.classSize;
                     const improvement = item.improvement || '-';
@@ -341,7 +372,7 @@ function updateReportCardPreview(reportData) {
         if (classPositionElement) classPositionElement.textContent = (classPosition !== null && classSize !== null) ? `${classPosition} out of ${classSize}` : '-';
 
         const overallGradeElement = document.getElementById('overall-grade');
-        if (overallGradeElement) overallGradeElement.textContent = termAverage !== null ? calculateGradeFromMarks(termAverage) : '-';
+        if (overallGradeElement) overallGradeElement.textContent = termAverage !== null ? calculateGradeFromMarks(termAverage, className) : '-';
 
         const remarksElement = document.getElementById('teacher-remarks-preview');
         if (remarksElement) remarksElement.textContent = payload.teacherRemarks || 'No remarks provided';
@@ -406,11 +437,7 @@ async function downloadReportCardAsPDF() {
     }
 
     try {
-        const BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE_URL)
-            ? window.API_CONFIG.API_BASE_URL
-            : 'http://localhost:5000/api';
-
-        const url = `${BASE}/cbc/report-card/${studentId}?term=${termNum}&academicYear=${encodeURIComponent(academicYear)}&download=true`;
+        const url = `${apiBase}/cbc/report-card/${studentId}?term=${termNum}&academicYear=${encodeURIComponent(academicYear)}&download=true`;
 
         const response = await fetch(url, {
             method: 'GET',
@@ -545,7 +572,7 @@ async function previewReportCard(event) {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/reports/generate/${encodeURIComponent(studentId)}/${encodeURIComponent(term)}/${year}`, {
+            const response = await fetch(`${apiBase}/reports/generate/${encodeURIComponent(studentId)}/${encodeURIComponent(term)}/${year}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -727,7 +754,7 @@ async function deleteReportCard() {
         const currentYear = new Date().getFullYear();
         const academicYear = `${currentYear}-${currentYear + 1}`;
         
-        const url = `${API_BASE_URL}/marks/${studentId}/term/${encodeURIComponent(term)}?academicYear=${encodeURIComponent(academicYear)}`;
+        const url = `${apiBase}/marks/${studentId}/term/${encodeURIComponent(term)}?academicYear=${encodeURIComponent(academicYear)}`;
         console.log('Making DELETE request to:', url);
         
         // Call the delete endpoint
