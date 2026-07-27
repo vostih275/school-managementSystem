@@ -2,30 +2,37 @@ const XLSX = require('xlsx');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
-const nameRegex = /^\s*name\s*$/i;
-const assRegex = /ass[\.\s]*no|assessment/i;
+const headerPatterns = [
+  { key: 'serialIdx', regex: /^\s*(S\s*[/.]?\s*NO|S\s*N|SERIAL|SN|INDEX|NO\.?)\s*$/i },
+  { key: 'nameIdx', regex: /^\s*NAME\s*$/i },
+  { key: 'assIdx', regex: /ASS[\.\s]*NO|ASSESSMENT/i }
+];
 
-function detectColumns(data) {
-  let nameIdx = null;
-  let assIdx = null;
+function findHeaderAndColumns(data) {
+  const scanLimit = Math.min(data.length, 15);
 
-  const scanLimit = Math.min(data.length, 10);
   for (let r = 0; r < scanLimit; r++) {
     const row = data[r];
     if (!row) continue;
+
+    const indices = {};
     for (let c = 0; c < row.length; c++) {
       const cell = row[c];
       if (typeof cell !== 'string') continue;
-      if (nameIdx === null && nameRegex.test(cell)) nameIdx = c;
-      if (assIdx === null && assRegex.test(cell)) assIdx = c;
+
+      headerPatterns.forEach(({ key, regex }) => {
+        if (indices[key] === undefined && regex.test(cell)) {
+          indices[key] = c;
+        }
+      });
     }
-    if (nameIdx !== null && assIdx !== null) break;
+
+    if (indices.serialIdx !== undefined && indices.nameIdx !== undefined) {
+      return { headerRow: r, ...indices };
+    }
   }
 
-  return {
-    nameIdx: nameIdx !== null ? nameIdx : 2,
-    assIdx: assIdx !== null ? assIdx : 4
-  };
+  return null;
 }
 
 exports.importExcelStudents = async (req, res) => {
@@ -60,24 +67,31 @@ exports.importExcelStudents = async (req, res) => {
       const sheet = workbook.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      if (data.length === 0) continue;
+      if (!Array.isArray(data) || data.length === 0) continue;
 
-      const validRows = data.filter(row => {
-        const serial = Number(row[1]);
-        if (!Number.isInteger(serial) || serial <= 0) return false;
-        if (!row[2] || String(row[2]).trim() === '') return false;
-        return true;
-      });
+      const headerInfo = findHeaderAndColumns(data);
+      if (!headerInfo) {
+        console.warn(`No header row found in sheet: ${sheetName}`);
+        continue;
+      }
 
-      if (validRows.length === 0) continue;
-      totalValidRows += validRows.length;
+      const { headerRow, serialIdx, nameIdx, assIdx } = headerInfo;
+      const studentRows = data.slice(headerRow + 1);
 
-      for (let i = 0; i < validRows.length; i++) {
-        const row = validRows[i];
+      for (let i = 0; i < studentRows.length; i++) {
+        const row = studentRows[i];
+
+        const rawSerial = row[serialIdx];
+        if (rawSerial === undefined || rawSerial === null || rawSerial === '') continue;
+        const serial = Number(rawSerial);
+        if (!Number.isInteger(serial) || serial <= 0) continue;
+
+        const rawName = row[nameIdx];
+        if (!rawName || String(rawName).trim() === '') continue;
 
         try {
           const student = {
-            name: String(row[2]).trim(),
+            name: String(rawName).trim(),
             class: className,
             admissionNumber: String(currentCounter).padStart(3, '0'),
             role: 'student',
@@ -89,8 +103,11 @@ exports.importExcelStudents = async (req, res) => {
             }
           };
 
-          if (row[4] && String(row[4]).startsWith('B0')) {
-            student.assessmentNumber = String(row[4]).trim();
+          if (assIdx !== undefined) {
+            const rawAss = row[assIdx];
+            if (rawAss && String(rawAss).startsWith('B0')) {
+              student.assessmentNumber = String(rawAss).trim();
+            }
           }
 
           if (student.assessmentNumber) {
