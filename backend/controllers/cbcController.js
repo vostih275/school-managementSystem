@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const path = require('path');
 const fsp = require('fs').promises;
 const CBCAssessment = require('../models/CBCAssessment');
+const Grade = require('../models/Grade');
 const CBCCoreCompetency = require('../models/CBCCoreCompetency');
 const User = require('../models/User');
 const { generateReportPdf } = require('../services/cbcReportService');
@@ -437,6 +438,141 @@ exports.buildTermReportData = buildTermReportData = async (studentId, term, acad
     };
 };
 
+// Fallback builder that uses Grade records from the Marks Entry flow when no CBCAssessment data exists yet
+const buildTermReportDataFromGrades = async (studentId, term, academicYear) => {
+    const termString = `Term ${term}`;
+    const year = parseInt(academicYear, 10) || parseInt(String(academicYear).match(/\d{4}/)[0], 10);
+
+    const [student, grades] = await Promise.all([
+        User.findById(studentId).select('name email class profile.class').lean(),
+        Grade.find({
+            student: new mongoose.Types.ObjectId(studentId),
+            term: termString,
+            year
+        }).lean()
+    ]);
+
+    if (!student || !grades || grades.length === 0) return null;
+
+    const studentClass = student.class || student.profile?.class || grades[0]?.class || '';
+    const gradingScale = detectGradingScale(studentClass);
+    const is4Tier = gradingScale === '4-tier';
+
+    const percentageToPrimaryRubric = (p) => {
+        if (p === null || p === undefined || isNaN(p)) return null;
+        if (p >= 80) return 'EE';
+        if (p >= 65) return 'ME';
+        if (p >= 50) return 'AE';
+        return 'BE';
+    };
+
+    const learningAreas = grades.map(g => {
+        if (is4Tier) {
+            const a1 = percentageToPrimaryRubric(g.assessments?.ass1);
+            const a2 = percentageToPrimaryRubric(g.assessments?.ass2);
+            const grade = calculatePrimaryGrade(a1, a2) ||
+                (g.grade ? { rubric: g.grade, label: g.grade } : null);
+            return {
+                learningArea: g.subject,
+                assessment1: a1,
+                assessment2: a2,
+                grade,
+                gradingScale: '4-tier',
+                teacherInitial: '',
+                teacherRemarks: g.comments || ''
+            };
+        }
+
+        const a1 = typeof g.assessments?.ass1 === 'number' ? g.assessments.ass1 : null;
+        const a2 = typeof g.assessments?.ass2 === 'number' ? g.assessments.ass2 : null;
+        const avg = g.subjectAverage !== null && g.subjectAverage !== undefined
+            ? g.subjectAverage
+            : calculateAverage(a1, a2);
+        const tier = percentageToTier(avg);
+        return {
+            learningArea: g.subject,
+            assessment1: a1,
+            assessment2: a2,
+            average: avg,
+            tier: tier ? { ...tier, formatted: formatTier(tier) } : null,
+            gradingScale: '8-tier',
+            teacherInitial: '',
+            teacherRemarks: g.comments || ''
+        };
+    }).sort((a, b) => a.learningArea.localeCompare(b.learningArea));
+
+    let summary;
+    if (is4Tier) {
+        const rubrics = learningAreas.map(la => la.grade?.rubric).filter(Boolean);
+        const overallCompetency = calculateOverallCompetency(rubrics);
+        summary = {
+            gradingScale: '4-tier',
+            overallCompetency,
+            classPosition: null,
+            classSize: null
+        };
+    } else {
+        const totalMarks = learningAreas.reduce((sum, la) => sum + (la.average || 0), 0);
+        const totalPoints = grades.reduce((sum, g) => sum + (g.points || 0), 0);
+        const overallGrade = totalMarksToGrade(totalMarks);
+
+        let classPosition = null;
+        let classSize = 0;
+        if (studentClass) {
+            const classGrades = await Grade.find({ class: studentClass, term: termString, year }).lean();
+            const studentTotals = new Map();
+            for (const cg of classGrades) {
+                const sid = String(cg.student);
+                if (!studentTotals.has(sid)) studentTotals.set(sid, []);
+                const avg = cg.subjectAverage !== null && cg.subjectAverage !== undefined
+                    ? cg.subjectAverage
+                    : calculateAverage(
+                          typeof cg.assessments?.ass1 === 'number' ? cg.assessments.ass1 : null,
+                          typeof cg.assessments?.ass2 === 'number' ? cg.assessments.ass2 : null
+                      );
+                studentTotals.get(sid).push(avg || 0);
+            }
+
+            const studentRankings = [];
+            for (const [sid, avgs] of studentTotals) {
+                const total = avgs.reduce((s, v) => s + v, 0);
+                studentRankings.push({ studentId: sid, totalMarks: total });
+            }
+            studentRankings.sort((a, b) => b.totalMarks - a.totalMarks);
+            classSize = studentRankings.length;
+            const myIndex = studentRankings.findIndex(r => r.studentId === String(studentId));
+            if (myIndex !== -1) classPosition = myIndex + 1;
+        }
+
+        summary = {
+            gradingScale: '8-tier',
+            totalMarks: Math.round(totalMarks * 100) / 100,
+            totalPoints,
+            overallGrade: overallGrade ? { ...overallGrade, formatted: formatOverallGrade(overallGrade) } : null,
+            classPosition,
+            classSize
+        };
+    }
+
+    return {
+        student: {
+            id: student._id,
+            name: student.name,
+            email: student.email,
+            class: studentClass
+        },
+        term,
+        academicYear,
+        gradingScale,
+        learningAreas,
+        summary,
+        competencies: null,
+        classTeacherRemarks: '',
+        principalRemarks: '',
+        attendance: null
+    };
+};
+
 // @desc    Generate (or serve cached) CBC PDF report card
 // @route   GET /api/cbc/report-card/:studentId?term=1&academicYear=2026-2027&download=true&regenerate=true
 // @access  Private (Teacher/Admin)
@@ -485,15 +621,20 @@ exports.getReportCard = async (req, res) => {
         }
 
         if (!cached) {
-            const reportData = await buildTermReportData(studentId, term, academicYear);
+            let reportData = await buildTermReportData(studentId, term, academicYear);
             if (!reportData) {
                 return res.status(404).json({ success: false, message: 'Student not found' });
             }
             if (reportData.learningAreas.length === 0 && !reportData.competencies) {
-                return res.status(404).json({
-                    success: false,
-                    message: `No CBC data recorded for this student in Term ${term}, ${academicYear}`
-                });
+                const gradeReportData = await buildTermReportDataFromGrades(studentId, term, academicYear);
+                if (gradeReportData && gradeReportData.learningAreas.length > 0) {
+                    reportData = gradeReportData;
+                } else {
+                    return res.status(404).json({
+                        success: false,
+                        message: `No CBC data recorded for this student in Term ${term}, ${academicYear}. Please enter and save marks first.`
+                    });
+                }
             }
             await generateReportPdf(reportData, filePath);
         }
