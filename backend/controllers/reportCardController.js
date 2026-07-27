@@ -385,7 +385,7 @@ const generateComprehensiveReport = async (req, res) => {
         if (studentGrades.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'No marks found for the specified term and year'
+                message: `No marks found for this student in ${term}, ${recordYear}. Please enter and save marks first.`
             });
         }
 

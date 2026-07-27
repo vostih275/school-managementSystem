@@ -582,6 +582,14 @@ async function previewReportCard(event) {
 
             if (!response.ok) {
                 const error = await response.json().catch(() => ({}));
+                if (response.status === 404) {
+                    const msg = error.message || `No marks recorded for this student for ${term} ${year}. Please go to Marks Entry, enter the scores, and click Save Marks first.`;
+                    showAlert(msg, 'warning');
+                    if (marksTableBody) {
+                        marksTableBody.innerHTML = `<tr><td colspan="12" class="text-center text-warning">${msg}</td></tr>`;
+                    }
+                    return;
+                }
                 throw new Error(error.message || `Server returned ${response.status}`);
             }
 
