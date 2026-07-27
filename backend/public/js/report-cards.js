@@ -290,6 +290,15 @@ function updateReportCardPreview(reportData) {
         const overallGrade = termAverage ? calculateGradeFromMarks(termAverage, className) : '-';
         const classPosition = payload.classPosition !== undefined ? payload.classPosition : null;
         const classSize = payload.classSize !== undefined ? payload.classSize : null;
+        const classTeacherName = (() => {
+            const grade = String(className).match(/\d+/);
+            switch (grade ? grade[0] : '') {
+                case '7': return 'Mrs. Anorita Losidi';
+                case '8': return 'Mr. Clifford Loperito';
+                case '9': return 'Mr. Simiyu Kennedy';
+                default:  return '..........................';
+            }
+        })();
 
         const isJss = isJuniorSecondaryClass(className);
 
@@ -462,7 +471,7 @@ function updateReportCardPreview(reportData) {
                     </tr>
                     <tr>
                         <td style="padding:4px 0;">Principal: Mrs. Akiru Rebecca Lokeun</td>
-                        <td style="padding:4px 0;">Class teacher: ..........................</td>
+                        <td style="padding:4px 0;">Class teacher: ${classTeacherName}</td>
                     </tr>
                     <tr>
                         <td style="padding:4px 0;">Signature ..........................</td>
