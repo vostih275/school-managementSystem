@@ -7,7 +7,8 @@ const {
     getSubjectMarks, 
     finalizeMarks, 
     getStudentReportCard,
-    deleteStudentMarks 
+    deleteStudentMarks,
+    deleteStudentMarksByQuery
 } = require('../controllers/marksController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -27,5 +28,6 @@ router.put('/finalize/:id', authorize('Teacher'), finalizeMarks);
 router.get('/student/:studentId', authorize('Student', 'Teacher'), getStudentMarks);
 router.get('/report-card/:studentId', authorize('Student', 'Teacher'), getStudentReportCard);
 router.delete('/:studentId/term/:term', authorize('Teacher'), deleteStudentMarks);
+router.delete('/students/:studentId/marks', authorize('Teacher'), deleteStudentMarksByQuery);
 
 module.exports = router;

@@ -3485,8 +3485,8 @@
           </div>
           
           <div style="margin-top: 20px; text-align: center;">
-            <button id="download-pdf" class="btn btn-success" style="display: none; margin-right: 10px;">
-              <i class="fas fa-download"></i> Download PDF
+            <button id="delete-marks" class="btn btn-danger" style="display: none; margin-right: 10px;">
+              <i class="fas fa-trash"></i> Delete Marks
             </button>
             <button id="send-to-student" class="btn btn-primary" style="display: none; margin-right: 10px;">
               <i class="fas fa-paper-plane"></i> Send to Student
@@ -3584,6 +3584,34 @@
             
             #confirmDeleteModal .close:hover {
               opacity: 0.8;
+            }
+
+            @media print {
+              body * {
+                visibility: hidden;
+              }
+              #report-card-preview,
+              #report-card-preview * {
+                visibility: visible;
+              }
+              #report-card-preview {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 10px;
+                box-sizing: border-box;
+              }
+              .official-report-card {
+                box-shadow: none !important;
+                border: none !important;
+                width: 210mm !important;
+                min-height: 297mm !important;
+                margin: 0 auto !important;
+              }
+              nav, .sidebar, .tab-nav, button, .btn, .alert, .filters, #confirmDeleteModal, .no-print {
+                display: none !important;
+              }
             }
           </style>
           

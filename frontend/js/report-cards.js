@@ -254,8 +254,233 @@ function formatMark(value) {
     return value;
 }
 
-// Function to update the report card preview
+function getTeacherRemark(totalMarks) {
+    if (totalMarks >= 788 && totalMarks <= 900) return 'E.E1 - Excellent work! Bravo!';
+    if (totalMarks >= 676) return 'E.E2 - Very good work. You are almost to excellent!';
+    if (totalMarks >= 563) return 'M.E1 - This is good. Target more!';
+    if (totalMarks >= 451) return 'M.E2 - Good work. Aim higher.';
+    if (totalMarks >= 338) return 'A.E1 - This is averagely fair work. Put more effort.';
+    if (totalMarks >= 226) return 'A.E2 - The ability is good. Try extra hard.';
+    if (totalMarks >= 113) return 'B.E1 - You have the potential. Aim higher.';
+    return 'B.E2 - You can work hard. Keep trying.';
+}
+
+// Official KJSEA report card builder (4 assessments)
 function updateReportCardPreview(reportData) {
+    console.log('=== updateReportCardPreview called ===');
+
+    try {
+        const payload = reportData.data || reportData;
+        const student = payload.student || {};
+        const subjects = Array.isArray(payload.subjects) ? payload.subjects : [];
+
+        const studentSelect = document.getElementById('report-student');
+        const classSelect = document.getElementById('report-class');
+        const termSelect = document.getElementById('report-term');
+
+        const studentName = student.name || (studentSelect ? studentSelect.options[studentSelect.selectedIndex]?.text : 'N/A') || 'N/A';
+        const className = student.class || (classSelect ? classSelect.value : '') || 'N/A';
+        const term = payload.term || (termSelect ? termSelect.value : '') || 'N/A';
+        const year = payload.year || new Date().getFullYear();
+        const termNumber = String(term).replace(/\D/g, '') || term;
+
+        const termAverage = payload.termAverage !== undefined && payload.termAverage !== null ? payload.termAverage : 0;
+        const totalMarks = termAverage * subjects.length;
+        const teacherRemark = getTeacherRemark(totalMarks);
+        const overallGrade = termAverage ? calculateGradeFromMarks(termAverage, className) : '-';
+        const classPosition = payload.classPosition !== undefined ? payload.classPosition : null;
+        const classSize = payload.classSize !== undefined ? payload.classSize : null;
+
+        const isJss = isJuniorSecondaryClass(className);
+
+        // Build per-subject rows
+        let rows = '';
+        const sorted = [...subjects].sort((a, b) => {
+            const codeA = a.subjectCode ? parseInt(a.subjectCode, 10) : Infinity;
+            const codeB = b.subjectCode ? parseInt(b.subjectCode, 10) : Infinity;
+            if (codeA !== codeB) return codeA - codeB;
+            return (a.subject || '').localeCompare(b.subject || '');
+        });
+
+        sorted.forEach((item, idx) => {
+            const name = item.subject || `Subject ${idx + 1}`;
+            const a = item.assessments || {};
+            const ass1 = a.ass1 !== undefined && a.ass1 !== null ? a.ass1 : null;
+            const ass2 = a.ass2 !== undefined && a.ass2 !== null ? a.ass2 : null;
+            const ass3 = a.ass3 !== undefined && a.ass3 !== null ? a.ass3 : null;
+            const ass4 = a.ass4 !== undefined && a.ass4 !== null ? a.ass4 : null;
+            const avg = item.subjectAverage !== undefined && item.subjectAverage !== null ? item.subjectAverage : null;
+
+            rows += `<tr>
+                <td style="padding:6px; border:1px solid #000; text-align:left; font-weight:600;">${name}</td>
+                <td style="padding:6px; border:1px solid #000; text-align:center;">${formatMark(ass1)}</td>
+                <td style="padding:6px; border:1px solid #000; text-align:center;">${ass1 !== null ? calculateGradeFromMarks(ass1, className) : '-'}</td>
+                <td style="padding:6px; border:1px solid #000; text-align:center;">${formatMark(ass2)}</td>
+                <td style="padding:6px; border:1px solid #000; text-align:center;">${ass2 !== null ? calculateGradeFromMarks(ass2, className) : '-'}</td>
+                <td style="padding:6px; border:1px solid #000; text-align:center;">${formatMark(ass3)}</td>
+                <td style="padding:6px; border:1px solid #000; text-align:center;">${ass3 !== null ? calculateGradeFromMarks(ass3, className) : '-'}</td>
+                <td style="padding:6px; border:1px solid #000; text-align:center;">${formatMark(ass4)}</td>
+                <td style="padding:6px; border:1px solid #000; text-align:center;">${ass4 !== null ? calculateGradeFromMarks(ass4, className) : '-'}</td>
+                <td style="padding:6px; border:1px solid #000; text-align:center; font-weight:700;">${formatMark(avg)}</td>
+                <td style="padding:6px; border:1px solid #000; text-align:center; font-weight:700;">${avg !== null ? calculateGradeFromMarks(avg, className) : '-'}</td>
+                <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+            </tr>`;
+        });
+
+        // Totals
+        let totalAss1 = null, totalAss2 = null, totalAss3 = null, totalAss4 = null, totalAvg = null;
+        let ptsAss1 = 0, ptsAss2 = 0, ptsAss3 = 0, ptsAss4 = 0, totalPts = 0;
+        let count = 0;
+        sorted.forEach(item => {
+            const a = item.assessments || {};
+            if (typeof a.ass1 === 'number') { totalAss1 = (totalAss1 || 0) + a.ass1; ptsAss1 += isJss ? (calculatePointsFromMarks(a.ass1, className) || 0) : 0; }
+            if (typeof a.ass2 === 'number') { totalAss2 = (totalAss2 || 0) + a.ass2; ptsAss2 += isJss ? (calculatePointsFromMarks(a.ass2, className) || 0) : 0; }
+            if (typeof a.ass3 === 'number') { totalAss3 = (totalAss3 || 0) + a.ass3; ptsAss3 += isJss ? (calculatePointsFromMarks(a.ass3, className) || 0) : 0; }
+            if (typeof a.ass4 === 'number') { totalAss4 = (totalAss4 || 0) + a.ass4; ptsAss4 += isJss ? (calculatePointsFromMarks(a.ass4, className) || 0) : 0; }
+            if (typeof item.subjectAverage === 'number') { totalAvg = (totalAvg || 0) + item.subjectAverage; totalPts += isJss ? (item.points !== undefined && item.points !== null ? item.points : (calculatePointsFromMarks(item.subjectAverage, className) || 0)) : 0; count++; }
+        });
+
+        const display = v => (v === null || v === undefined || v === '') ? '-' : v;
+        const ptsDisplay = p => isJss ? (p || 0) : '-';
+
+        const html = `
+        <div class="official-report-card" style="background:#fff; color:#000; padding:20px; font-family:Arial, sans-serif; font-size:13px; line-height:1.4;">
+            <div style="text-align:center; margin-bottom:15px;">
+                <img src="../images/graduation-cap.png" alt="School logo" style="max-height:70px; margin-bottom:8px;" onerror="this.style.display='none'">
+                <h2 style="margin:0; font-size:20px; text-transform:uppercase; letter-spacing:1px;">AIC LOKICHOGGIO GIRLS PRIMARY & JUNIOR</h2>
+                <h3 style="margin:8px 0 4px; font-size:18px; text-transform:uppercase;">Learner's Progress Report Form</h3>
+                <div style="font-size:15px; font-weight:700;">TERM ${termNumber} - ${year}</div>
+            </div>
+
+            <div style="margin-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-weight:600;">
+                    <span>LEARNER'S NAME: ${studentName}</span>
+                    <span>GRADE: ${className}</span>
+                </div>
+                <p style="margin:8px 0; font-style:italic; font-size:12px;">Dear Parents/Guardians, This report form shows the ability and progress your child has made in different learning areas. The school welcomes you, should you desire to know more about your child's progress.</p>
+            </div>
+
+            <table style="width:100%; border-collapse:collapse; border:1px solid #000; margin-bottom:15px; font-size:12px;">
+                <thead>
+                    <tr style="background:#e9ecef;">
+                        <th style="padding:6px; border:1px solid #000; text-align:left; width:18%;">LEARNING AREA</th>
+                        <th style="padding:6px; border:1px solid #000; text-align:center;">ASS1</th>
+                        <th style="padding:6px; border:1px solid #000; text-align:center;">LEVEL</th>
+                        <th style="padding:6px; border:1px solid #000; text-align:center;">ASS2</th>
+                        <th style="padding:6px; border:1px solid #000; text-align:center;">LEVEL</th>
+                        <th style="padding:6px; border:1px solid #000; text-align:center;">ASS3</th>
+                        <th style="padding:6px; border:1px solid #000; text-align:center;">LEVEL</th>
+                        <th style="padding:6px; border:1px solid #000; text-align:center;">ASS4</th>
+                        <th style="padding:6px; border:1px solid #000; text-align:center;">LEVEL</th>
+                        <th style="padding:6px; border:1px solid #000; text-align:center;">AVERAGE</th>
+                        <th style="padding:6px; border:1px solid #000; text-align:center;">LEVEL</th>
+                        <th style="padding:6px; border:1px solid #000; text-align:center;">TR. INITIAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                    <tr style="font-weight:700; background:#f1f1f1;">
+                        <td style="padding:6px; border:1px solid #000; text-align:left;">TOTAL MARKS/ MEAN GRADE</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${display(totalAss1)}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${display(totalAss2)}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${display(totalAss3)}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${display(totalAss4)}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${display(count ? (totalAvg / count).toFixed(2) : '-')}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${overallGrade}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                    </tr>
+                    <tr style="font-weight:700;">
+                        <td style="padding:6px; border:1px solid #000; text-align:left;">TOTAL POINTS OUT OF 8</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss1)}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss2)}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss3)}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss4)}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${ptsDisplay(totalPts)}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                    </tr>
+                    <tr style="font-weight:700;">
+                        <td style="padding:6px; border:1px solid #000; text-align:left;">CLASS POSITION</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">-</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">-</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">-</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">-</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">${classPosition !== null && classSize !== null ? `${classPosition} / ${classSize}` : '-'}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="margin-bottom:12px; font-weight:700;">Class teacher's Remarks: <span style="font-weight:400;">${teacherRemark}</span></div>
+
+            <div style="margin-bottom:12px; font-size:11px; font-weight:700;">
+                OVERALL GRADING SCALE: 01-112 (BE2), 113-225 (BE-1), 226-337 (AE-2), 338-450 (AE-1), 451-562(ME-2), 563-675(ME-1), 676-787(EE-2), 788-900(EE-1) and [----] MISSED ASSESSMENT.
+            </div>
+
+            <pre style="margin:0 0 12px; font-size:11px; line-height:1.4; font-family:monospace; white-space:pre; border:none; background:transparent;">KJSEA GRADING SCALE PER LEARNING AREA (%)
+01-10(1 P) --- [0.5]- BE (2)              11-20(2 P)--- [1.0]-BE (1) -BELOW EXPECTATION
+21- 30 (3 P)--- [1.5]-AE (2)              31-40(4 P)--- [2.0]-AE (1)-APPROACHING EXPECTATION
+41-57(5 P)--- [2.5]-ME (2)               58-74(6 P)--- [3.0]-ME (1)--MEETING EXPECTATION
+75-89(7 P)--- [3.5]-EE (2)                 90-100 (8 P)--- [4.0]-EE (1) - EXCEEDING EXPECTATION</pre>
+
+            <div style="margin-top:20px; font-size:12px;">
+                <table style="width:100%; border-collapse:collapse;">
+                    <tr>
+                        <td style="padding:4px 0;">Opening date: ..........................</td>
+                        <td style="padding:4px 0;">Closing date: ..........................</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:4px 0;">Principal: Mrs. Akiru Rebecca Lokeun</td>
+                        <td style="padding:4px 0;">Class teacher: ..........................</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:4px 0;">Signature ..........................</td>
+                        <td style="padding:4px 0;">Signature ..........................</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:4px 0;"></td>
+                        <td style="padding:4px 0; text-align:right; font-weight:700;">SCHOOL OFFICIAL STAMP</td>
+                    </tr>
+                </table>
+            </div>
+        </div>`;
+
+        const previewContainer = document.getElementById('report-card-preview');
+        if (previewContainer) {
+            previewContainer.innerHTML = html;
+        }
+
+        // Show the preview section and action buttons
+        const previewSection = document.querySelector('.preview-section');
+        if (previewSection) previewSection.style.display = 'block';
+
+        const deleteMarksBtn = document.getElementById('delete-marks');
+        if (deleteMarksBtn) deleteMarksBtn.style.display = 'inline-block';
+
+        const sendBtn = document.getElementById('send-to-student');
+        if (sendBtn) sendBtn.style.display = 'inline-block';
+
+    } catch (error) {
+        console.error('Error updating report card preview:', error);
+        showAlert('Failed to update report card preview. Please try again.', 'error');
+    }
+}
+
+// Legacy preview builder (kept for reference)
+function _deprecatedUpdateReportCardPreview(reportData) {
     console.log('=== updateReportCardPreview called ===');
     console.log('Report data received:', reportData);
 
@@ -397,9 +622,84 @@ function updateReportCardPreview(reportData) {
 }
 
 // ---------------------------------------------------------------------------
-// Download Report Card as PDF via the CBC report service
 // ---------------------------------------------------------------------------
-async function downloadReportCardAsPDF() {
+// Delete Marks for selected student/term
+// ---------------------------------------------------------------------------
+async function deleteMarks() {
+    const studentSelect = document.getElementById('report-student');
+    const termSelect = document.getElementById('report-term');
+
+    const studentId = studentSelect ? studentSelect.value : '';
+    const term = termSelect ? termSelect.value : '';
+    const year = new Date().getFullYear();
+
+    if (!studentId || !term) {
+        showAlert('Please select a student and term before deleting marks.', 'error');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to delete all marks for this student for the selected term?')) {
+        return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showAlert('You are not authenticated. Please log in again.', 'error');
+        return;
+    }
+
+    const deleteBtn = document.getElementById('delete-marks');
+    const originalText = deleteBtn ? deleteBtn.innerHTML : '';
+    if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+    }
+
+    try {
+        const url = `${apiBase}/marks/students/${encodeURIComponent(studentId)}/marks?term=${encodeURIComponent(term)}&year=${year}`;
+
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(data.message || `Server returned ${response.status}`);
+        }
+
+        showAlert(data.message || 'Marks deleted successfully.', 'success');
+
+        // Clear the preview
+        const previewContainer = document.getElementById('report-card-preview');
+        if (previewContainer) {
+            previewContainer.innerHTML = '<div style="padding:20px; text-align:center;">Marks deleted. Generate a new report card after entering marks.</div>';
+        }
+
+        // Refresh the student list
+        const classSelect = document.getElementById('report-class');
+        if (classSelect && classSelect.value) {
+            loadStudentsForReportCard(classSelect.value);
+        }
+
+    } catch (error) {
+        console.error('deleteMarks error:', error);
+        showAlert(`Failed to delete marks: ${error.message}`, 'error');
+    } finally {
+        if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = originalText;
+        }
+    }
+}
+
+// Download Report Card as PDF via the CBC report service (legacy)
+// ---------------------------------------------------------------------------
+async function _unusedDownloadReportCardAsPDF() {
     const studentSelect = document.getElementById('report-student');
     const termSelect    = document.getElementById('report-term');
 
@@ -949,12 +1249,12 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Generate report card button not found');
     }
 
-    // Wire Download PDF button
-    const downloadPdfBtn = document.getElementById('download-pdf');
-    if (downloadPdfBtn) {
-        downloadPdfBtn.addEventListener('click', function(e) {
+    // Wire Delete Marks button
+    const deleteMarksBtn = document.getElementById('delete-marks');
+    if (deleteMarksBtn) {
+        deleteMarksBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            downloadReportCardAsPDF();
+            deleteMarks();
         });
     }
 

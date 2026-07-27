@@ -640,6 +640,60 @@ exports.deleteStudentMarks = asyncHandler(async (req, res, next) => {
     }
 });
 
+// @desc    Delete student marks for a specific term and year (query based)
+// @route   DELETE /api/marks/students/:studentId/marks?term=X&year=Y
+// @access  Private/Teacher
+exports.deleteStudentMarksByQuery = asyncHandler(async (req, res, next) => {
+    const { studentId } = req.params;
+    const { term, year } = req.query;
+
+    // Validate input
+    if (!studentId || !term) {
+        return next(new ErrorResponse('Student ID and term are required', 400));
+    }
+
+    try {
+        // Build query
+        const query = {
+            student: studentId,
+            term: term
+        };
+
+        // Add year to query if provided, otherwise use current year
+        if (year) {
+            query.year = Number(year);
+        } else {
+            query.year = new Date().getFullYear();
+        }
+
+        // Delete marks
+        const result = await Grade.deleteMany(query);
+
+        // Also delete corresponding report card
+        await ReportCard.findOneAndDelete({
+            studentId: studentId,
+            term: term,
+            year: String(query.year)
+        });
+
+        // Clear cache
+        const cacheKey = `marks-${studentId}-${term}-${query.year}`;
+        if (req.redisClient) {
+            await req.redisClient.del(cacheKey);
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {},
+            message: `Successfully deleted ${result.deletedCount} marks records`
+        });
+
+    } catch (error) {
+        console.error('Error deleting student marks:', error);
+        return next(new ErrorResponse('Failed to delete student marks', 500));
+    }
+});
+
 // Helper function to calculate grade based on the specified criteria
 function calculateGrade(score) {
     if (score >= 90) return 'A+';
