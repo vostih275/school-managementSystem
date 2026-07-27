@@ -1,5 +1,6 @@
 const ReportCard = require('../models/ReportCard');
 const User = require('../models/User');
+const Grade = require('../models/Grade');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
@@ -314,9 +315,196 @@ const getAllReportCards = async (req, res) => {
     }
 };
 
+// Helper: first available assessment (ASS1 -> ASS4)
+function getFirstAssessment(assessments = {}) {
+    for (const key of ['ass1', 'ass2', 'ass3', 'ass4']) {
+        const val = assessments[key];
+        if (typeof val === 'number' && !isNaN(val)) return val;
+    }
+    return null;
+}
+
+// Helper: latest available assessment (ASS4 -> ASS1)
+function getLatestAssessment(assessments = {}) {
+    for (const key of ['ass4', 'ass3', 'ass2', 'ass1']) {
+        const val = assessments[key];
+        if (typeof val === 'number' && !isNaN(val)) return val;
+    }
+    return null;
+}
+
+// Helper: improvement trend for a subject
+function getImprovement(assessments = {}) {
+    const first = getFirstAssessment(assessments);
+    const latest = getLatestAssessment(assessments);
+    if (first === null || latest === null) return 'N/A';
+    if (latest > first) return 'Improving';
+    if (latest < first) return 'Declining';
+    return 'Constant';
+}
+
+// Helper: average of an array of numbers
+function average(values) {
+    const valid = values.filter(v => typeof v === 'number' && !isNaN(v));
+    if (!valid.length) return 0;
+    return valid.reduce((a, b) => a + b, 0) / valid.length;
+}
+
+// Helper: standard competition rank (number of strictly higher values + 1)
+function rank(value, allValues) {
+    return allValues.filter(v => v > value).length + 1;
+}
+
+// @desc    Generate comprehensive report card data
+// @route   GET /api/reports/generate/:studentId/:term/:year
+// @access  Private
+const generateComprehensiveReport = async (req, res) => {
+    try {
+        const { studentId, term, year } = req.params;
+        const recordYear = Number(year);
+
+        if (!studentId || !term || isNaN(recordYear)) {
+            return res.status(400).json({
+                success: false,
+                message: 'studentId, term, and a valid year are required'
+            });
+        }
+
+        const student = await User.findById(studentId).lean();
+        if (!student) {
+            return res.status(404).json({ success: false, message: 'Student not found' });
+        }
+
+        const studentGrades = await Grade.find({
+            student: studentId,
+            term,
+            year: recordYear
+        }).lean();
+
+        if (studentGrades.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No marks found for the specified term and year'
+            });
+        }
+
+        const studentClass = studentGrades[0].class || student.class || student.profile?.class || '';
+        if (!studentClass) {
+            return res.status(400).json({
+                success: false,
+                message: 'Student class not found'
+            });
+        }
+
+        // All grades in the same class, term and year
+        const classGrades = await Grade.find({
+            class: studentClass,
+            term,
+            year: recordYear
+        }).populate('student', 'name').lean();
+
+        // Compute each class student's term average
+        const studentTermMap = {};
+        for (const g of classGrades) {
+            const sid = g.student._id.toString();
+            const subjectAverage = average([
+                g.assessments?.ass1,
+                g.assessments?.ass2,
+                g.assessments?.ass3,
+                g.assessments?.ass4
+            ]);
+
+            if (!studentTermMap[sid]) {
+                studentTermMap[sid] = { name: g.student?.name || g.studentName, averages: [] };
+            }
+            studentTermMap[sid].averages.push(subjectAverage);
+        }
+
+        const classAverages = Object.entries(studentTermMap).map(([sid, data]) => ({
+            studentId: sid,
+            name: data.name,
+            termAverage: data.averages.length
+                ? data.averages.reduce((a, b) => a + b, 0) / data.averages.length
+                : 0
+        }));
+
+        const studentRecord = classAverages.find(s => s.studentId === studentId);
+        const termAverage = studentRecord ? studentRecord.termAverage : 0;
+        const classPosition = rank(termAverage, classAverages.map(s => s.termAverage));
+        const classSize = classAverages.length;
+
+        // Build per-subject report data
+        const subjects = studentGrades.map(g => {
+            const assessments = g.assessments || {};
+            const values = [
+                assessments.ass1,
+                assessments.ass2,
+                assessments.ass3,
+                assessments.ass4
+            ].filter(v => typeof v === 'number' && !isNaN(v));
+            const subjectAverage = values.length
+                ? values.reduce((a, b) => a + b, 0) / values.length
+                : 0;
+
+            // All students' averages for this subject
+            const subjectClassValues = classGrades
+                .filter(cg => cg.subject === g.subject)
+                .map(cg => average([
+                    cg.assessments?.ass1,
+                    cg.assessments?.ass2,
+                    cg.assessments?.ass3,
+                    cg.assessments?.ass4
+                ]));
+
+            const subjectPosition = rank(subjectAverage, subjectClassValues);
+
+            return {
+                subject: g.subject,
+                assessments: {
+                    ass1: assessments.ass1 ?? null,
+                    ass2: assessments.ass2 ?? null,
+                    ass3: assessments.ass3 ?? null,
+                    ass4: assessments.ass4 ?? null
+                },
+                subjectAverage: parseFloat(subjectAverage.toFixed(2)),
+                grade: g.grade || '',
+                points: g.points ?? null,
+                improvement: getImprovement(assessments),
+                subjectPosition,
+                totalStudents: subjectClassValues.length
+            };
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                student: {
+                    id: student._id,
+                    name: student.name || 'Unknown Student',
+                    class: studentClass
+                },
+                term,
+                year: recordYear,
+                termAverage: parseFloat(termAverage.toFixed(2)),
+                classSize,
+                classPosition,
+                subjects
+            }
+        });
+    } catch (error) {
+        console.error('Error generating comprehensive report:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error generating report card',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     sendReportCard,
     getStudentReportCards,
     getReportCard,
-    getAllReportCards
+    getAllReportCards,
+    generateComprehensiveReport
 };
