@@ -41,8 +41,8 @@ const generatePdfFromHtml = async (html, outputPath) => {
 // @access  Private/Teacher
 exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
     const { studentId } = req.params;
-    const { term, subjects, remarks } = req.body;
-    
+    const { term, year, subjects, remarks } = req.body;
+
     // Validate input
     if (!term || !subjects || !Array.isArray(subjects) || subjects.length === 0) {
         return next(new ErrorResponse('Term and subjects array are required', 400));
@@ -57,8 +57,7 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
     // Save each subject's marks
     const savedMarks = [];
     const currentYear = new Date().getFullYear();
-    const nextYear = currentYear + 1;
-    const academicYear = req.user?.schoolYear || `${currentYear}-${nextYear}`;
+    const recordYear = Number(year) || currentYear;
     
     // Track all subjects being saved
     const subjectsData = [];
@@ -72,19 +71,21 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
         
         try {
             // Use findOneAndUpdate with upsert to handle concurrent updates atomically
+            const assessments = item.assessments || (typeof marks === 'number' ? { ass1: marks } : { ass1: null, ass2: null, ass3: null, ass4: null });
+
             const filter = {
                 student: studentId,
                 subject,
                 term: term || 'Term 1',
-                academicYear
+                year: recordYear
             };
-            
+
             const update = {
                 $set: {
                     studentName: student.name,
                     class: student.class || student.profile?.class || 'Grade 8',
-                    score: marks,
-                    grade: grade || calculateGrade(marks),
+                    assessments,
+                    year: recordYear,
                     teacher: req.user.id,
                     comments: remarks || '',
                     updatedAt: new Date()
@@ -104,10 +105,12 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
             savedMarks.push(gradeRecord);
             
             // Add to subjects data for report card
+            const scoreValues = Object.values(assessments).filter(v => typeof v === 'number' && !isNaN(v));
+            const avg = scoreValues.length ? scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length : null;
             subjectsData.push({
                 subject,
-                mark: marks,
-                grade: grade || calculateGrade(marks)
+                mark: avg ?? marks ?? 0,
+                grade: grade || (avg !== null ? calculateGrade(avg) : '')
             });
             
         } catch (error) {
@@ -125,13 +128,17 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
             const studentName = studentInfo ? studentInfo.name : 'Student';
             const className = studentInfo?.class || studentInfo?.profile?.class || 'Unknown';
             
+            // Calculate subject totals and overall average
+            const totalMarks = subjectsData.reduce((sum, subj) => sum + (parseFloat(subj.mark) || 0), 0);
+            const overallAverage = subjectsData.length ? totalMarks / subjectsData.length : 0;
+
             // Generate HTML content for the report card
             const htmlContent = `
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <meta charset="UTF-8">
-                    <title>Report Card - ${studentName} - ${term} ${academicYear}</title>
+                    <title>Report Card - ${studentName} - ${term} ${recordYear}</title>
                     <style>
                         body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
                         .header { text-align: center; margin-bottom: 20px; }
@@ -145,21 +152,21 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
                 <body>
                     <div class="header">
                         <h1>${process.env.SCHOOL_NAME || 'School'} Report Card</h1>
-                        <h2>${term} ${academicYear}</h2>
+                        <h2>${term} ${recordYear}</h2>
                     </div>
-                    
+
                     <div class="student-info">
                         <p><strong>Student Name:</strong> ${studentName}</p>
                         <p><strong>Class:</strong> ${className}</p>
                         <p><strong>Term:</strong> ${term}</p>
-                        <p><strong>Academic Year:</strong> ${academicYear}</p>
+                        <p><strong>Academic Year:</strong> ${recordYear}</p>
                     </div>
-                    
+
                     <table>
                         <thead>
                             <tr>
                                 <th>Subject</th>
-                                <th>Marks</th>
+                                <th>Average</th>
                                 <th>Grade</th>
                             </tr>
                         </thead>
@@ -167,13 +174,20 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
                             ${subjectsData.map(subj => `
                                 <tr>
                                     <td>${subj.subject}</td>
-                                    <td>${subj.mark}</td>
+                                    <td>${Number(subj.mark).toFixed(2)}</td>
                                     <td>${subj.grade}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
+                        <tfoot>
+                            <tr>
+                                <td><strong>Overall</strong></td>
+                                <td><strong>${overallAverage.toFixed(2)}</strong></td>
+                                <td><strong>${calculateGrade(overallAverage)}</strong></td>
+                            </tr>
+                        </tfoot>
                     </table>
-                    
+
                     <div class="footer">
                         <p>Teacher's Remarks: ${remarks || 'N/A'}</p>
                         <p>Date: ${new Date().toLocaleDateString()}</p>
@@ -181,13 +195,13 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
                 </body>
                 </html>
             `;
-            
+
             // Save report card
             await ReportCard.findOneAndUpdate(
-                { 
+                {
                     studentId: studentId,
                     term: term,
-                    academicYear: academicYear
+                    year: String(recordYear)
                 },
                 {
                     $set: {
@@ -198,14 +212,14 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
                         generatedBy: req.user.id,
                         status: 'generated',
                         term: term,
-                        academicYear: academicYear,
+                        year: String(recordYear),
                         teacherRemarks: remarks || ''
                     }
                 },
                 { upsert: true, new: true }
             );
             
-            console.log(`Report card generated for ${studentName} (${term} ${academicYear})`);
+            console.log(`Report card generated for ${studentName} (${term} ${recordYear})`);
             
         } catch (error) {
             console.error('Error generating report card:', error);
@@ -225,22 +239,26 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
 // @route   POST /api/v1/marks
 // @access  Private/Teacher
 exports.saveMarks = asyncHandler(async (req, res, next) => {
-    const { student, studentName, class: className, subject, score, term, academicYear, comments } = req.body;
-    
+    const { student, studentName, class: className, subject, term, year, assessments, comments } = req.body;
+    const recordYear = Number(year) || new Date().getFullYear();
+
     // Check if marks already exist for this student, subject, term, and year
     const existingGrade = await Grade.findOne({
         student,
         subject,
         term,
-        academicYear
+        year: recordYear
     });
 
+    const assessmentData = assessments || { ass1: null, ass2: null, ass3: null, ass4: null };
+
     let grade;
-    
+
     if (existingGrade) {
         // Update existing grade
-        existingGrade.score = score;
+        existingGrade.assessments = assessmentData;
         existingGrade.comments = comments || existingGrade.comments;
+        existingGrade.year = recordYear;
         grade = await existingGrade.save();
     } else {
         // Create new grade
@@ -249,10 +267,10 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
             studentName,
             class: className,
             subject,
-            score,
             term,
-            academicYear,
+            year: recordYear,
             teacher: req.user.id,
+            assessments: assessmentData,
             comments: comments || ''
         });
     }
@@ -263,17 +281,17 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
         const marks = await Grade.find({
             student,
             term,
-            academicYear
+            year: recordYear
         });
 
         if (marks.length > 0) {
             // Generate HTML for the report card
             const studentInfo = await User.findById(student).select('name class profile.class').lean();
-            const studentName = studentInfo ? studentInfo.name : studentName || 'Student';
-            const className = studentInfo?.class || studentInfo?.profile?.class || className || 'Unknown';
+            const resolvedName = studentInfo ? studentInfo.name : studentName || 'Student';
+            const resolvedClass = studentInfo?.class || studentInfo?.profile?.class || className || 'Unknown';
 
-            // Calculate average score
-            const totalScore = marks.reduce((sum, mark) => sum + mark.score, 0);
+            // Calculate average score from subject averages
+            const totalScore = marks.reduce((sum, mark) => sum + (mark.subjectAverage || 0), 0);
             const averageScore = marks.length > 0 ? totalScore / marks.length : 0;
             const overallGrade = calculateGrade(averageScore);
 
@@ -282,7 +300,7 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Report Card - ${studentName}</title>
+                    <title>Report Card - ${resolvedName}</title>
                     <style>
                         body { font-family: Arial, sans-serif; line-height: 1.6; }
                         .header { text-align: center; margin-bottom: 20px; }
@@ -299,9 +317,9 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
                     </div>
                     
                     <div class="student-info">
-                        <p><strong>Student Name:</strong> ${studentName}</p>
-                        <p><strong>Class:</strong> ${className}</p>
-                        <p><strong>Term:</strong> ${term} ${academicYear}</p>
+                        <p><strong>Student Name:</strong> ${resolvedName}</p>
+                        <p><strong>Class:</strong> ${resolvedClass}</p>
+                        <p><strong>Term:</strong> ${term} ${recordYear}</p>
                     </div>
                     
                     <table>
@@ -316,8 +334,8 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
                             ${marks.map(mark => `
                                 <tr>
                                     <td>${mark.subject}</td>
-                                    <td>${mark.score}%</td>
-                                    <td>${calculateGrade(mark.score)}</td>
+                                    <td>${mark.subjectAverage ? mark.subjectAverage.toFixed(2) : 'N/A'}%</td>
+                                    <td>${mark.grade || 'N/A'}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -362,7 +380,7 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
             const existingReportCard = await ReportCard.findOne({
                 studentId: student,
                 term,
-                year: academicYear
+                year: String(recordYear)
             });
 
             if (existingReportCard) {
@@ -376,9 +394,9 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
                 // Create new report card
                 await ReportCard.create({
                     studentId: student,
-                    studentName,
+                    studentName: resolvedName,
                     term,
-                    year: academicYear,
+                    year: String(recordYear),
                     comments: 'Automatically generated from marks',
                     path: `/reports/pdf/${pdfFilename}`,
                     htmlPath: `/reports/html/${htmlFilename}`,
@@ -403,16 +421,16 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
 // @route   GET /api/v1/marks/student/:studentId
 // @access  Private
 exports.getStudentMarks = asyncHandler(async (req, res, next) => {
-    const { term, academicYear } = req.query;
+    const { term, year } = req.query;
     const query = { student: req.params.studentId };
-    
+
     if (term) query.term = term;
-    if (academicYear) query.academicYear = academicYear;
-    
+    if (year) query.year = Number(year);
+
     const marks = await Grade.find(query)
         .populate('student', 'name email')
         .populate('teacher', 'name');
-        
+
     res.status(200).json({
         success: true,
         count: marks.length,
@@ -424,16 +442,16 @@ exports.getStudentMarks = asyncHandler(async (req, res, next) => {
 // @route   GET /api/v1/marks/class/:className
 // @access  Private/Teacher
 exports.getClassMarks = asyncHandler(async (req, res, next) => {
-    const { term, academicYear } = req.query;
+    const { term, year } = req.query;
     const query = { class: req.params.className };
-    
+
     if (term) query.term = term;
-    if (academicYear) query.academicYear = academicYear;
-    
+    if (year) query.year = Number(year);
+
     const marks = await Grade.find(query)
         .populate('student', 'name email')
         .populate('teacher', 'name');
-        
+
     res.status(200).json({
         success: true,
         count: marks.length,
@@ -445,16 +463,16 @@ exports.getClassMarks = asyncHandler(async (req, res, next) => {
 // @route   GET /api/v1/marks/subject/:subject
 // @access  Private/Teacher
 exports.getSubjectMarks = asyncHandler(async (req, res, next) => {
-    const { term, academicYear } = req.query;
+    const { term, year } = req.query;
     const query = { subject: req.params.subject };
-    
+
     if (term) query.term = term;
-    if (academicYear) query.academicYear = academicYear;
-    
+    if (year) query.year = Number(year);
+
     const marks = await Grade.find(query)
         .populate('student', 'name email')
         .populate('teacher', 'name');
-        
+
     res.status(200).json({
         success: true,
         count: marks.length,
@@ -491,45 +509,47 @@ exports.finalizeMarks = asyncHandler(async (req, res, next) => {
 // @access  Private
 exports.getStudentReportCard = asyncHandler(async (req, res, next) => {
     try {
-        const { term, academicYear } = req.query;
-        
-        if (!term || !academicYear) {
+        const { term, year } = req.query;
+
+        if (!term || !year) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide both term and academic year'
+                message: 'Please provide both term and year'
             });
         }
-        
+
+        const recordYear = Number(year);
+
         // First, get the student information
         const student = await User.findById(req.params.studentId)
             .select('name email class profile.class')
             .lean();
-            
+
         if (!student) {
             return res.status(404).json({
                 success: false,
                 message: 'Student not found'
             });
         }
-        
+
         // Then get the marks
         const marks = await Grade.find({
             student: req.params.studentId,
             term,
-            academicYear
+            year: recordYear
         }).sort('subject');
-        
+
         if (marks.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'No marks found for the specified criteria'
             });
         }
-        
-        // Calculate average score
-        const totalScore = marks.reduce((sum, mark) => sum + (parseFloat(mark.score) || 0), 0);
+
+        // Calculate average score from subject averages
+        const totalScore = marks.reduce((sum, mark) => sum + (mark.subjectAverage || 0), 0);
         const averageScore = marks.length > 0 ? totalScore / marks.length : 0;
-        
+
         // Format the response
         res.status(200).json({
             success: true,
@@ -541,15 +561,18 @@ exports.getStudentReportCard = asyncHandler(async (req, res, next) => {
                     className: student.class || student.profile?.class || ''
                 },
                 term,
-                academicYear,
+                year: recordYear,
                 subjects: marks.map(mark => ({
                     subject: mark.subject,
-                    score: parseFloat(mark.score) || 0,
-                    grade: calculateGrade(parseFloat(mark.score) || 0),
+                    assessments: mark.assessments,
+                    subjectAverage: mark.subjectAverage,
+                    score: mark.subjectAverage || 0,
+                    grade: mark.grade || '',
+                    points: mark.points,
                     comments: mark.comments || ''
                 })),
                 averageScore: parseFloat(averageScore.toFixed(2)),
-                overallGrade: calculateGrade(averageScore)
+                overallGrade: averageScore ? calculateGrade(averageScore) : ''
             }
         });
     } catch (error) {
@@ -567,7 +590,7 @@ exports.getStudentReportCard = asyncHandler(async (req, res, next) => {
 // @access  Private/Teacher
 exports.deleteStudentMarks = asyncHandler(async (req, res, next) => {
     const { studentId, term } = req.params;
-    const { academicYear } = req.query;
+    const { year } = req.query;
 
     // Validate input
     if (!studentId || !term) {
@@ -581,13 +604,12 @@ exports.deleteStudentMarks = asyncHandler(async (req, res, next) => {
             term: term
         };
 
-        // Add academic year to query if provided
-        if (academicYear) {
-            query.academicYear = academicYear;
+        // Add year to query if provided
+        if (year) {
+            query.year = Number(year);
         } else {
-            // If no academic year provided, use current academic year
-            const currentYear = new Date().getFullYear();
-            query.academicYear = `${currentYear}-${currentYear + 1}`;
+            // If no year provided, use current year
+            query.year = new Date().getFullYear();
         }
 
         // Delete marks
@@ -597,11 +619,11 @@ exports.deleteStudentMarks = asyncHandler(async (req, res, next) => {
         await ReportCard.findOneAndDelete({
             studentId: studentId,
             term: term,
-            academicYear: query.academicYear
+            year: String(query.year)
         });
 
         // Clear cache
-        const cacheKey = `marks-${studentId}-${term}-${query.academicYear}`;
+        const cacheKey = `marks-${studentId}-${term}-${query.year}`;
         if (req.redisClient) {
             await req.redisClient.del(cacheKey);
         }

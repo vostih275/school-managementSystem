@@ -90,6 +90,7 @@ app.use('/api/roles', require('./routes/roles'));
 app.use('/api/quizzes', require('./routes/quizRoutes'));
 app.use('/api/classes', require('./routes/class'));
 app.use('/api/marks', require('./routes/marksRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/fees', require('./routes/fees'));
 app.use('/api/report-cards', require('./routes/reportCardRoutes'));
 app.use('/api/attendance', require('./routes/attendanceRoutes'));
