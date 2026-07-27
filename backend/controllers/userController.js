@@ -2,38 +2,6 @@ const XLSX = require('xlsx');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
-const headerPatterns = [
-  { key: 'serialIdx', regex: /^\s*(S\s*[/.]?\s*NO|S\s*N|SERIAL|SN|INDEX|NO\.?)\s*$/i },
-  { key: 'nameIdx', regex: /^\s*NAME\s*$/i },
-  { key: 'assIdx', regex: /ASS[\.\s]*NO|ASSESSMENT/i }
-];
-
-function findHeaderAndColumns(data) {
-  const scanLimit = Math.min(data.length, 15);
-
-  for (let r = 0; r < scanLimit; r++) {
-    const row = data[r];
-    if (!row) continue;
-
-    const indices = {};
-    for (let c = 0; c < row.length; c++) {
-      const cell = row[c];
-      if (typeof cell !== 'string') continue;
-
-      headerPatterns.forEach(({ key, regex }) => {
-        if (indices[key] === undefined && regex.test(cell)) {
-          indices[key] = c;
-        }
-      });
-    }
-
-    if (indices.serialIdx !== undefined && indices.nameIdx !== undefined) {
-      return { headerRow: r, ...indices };
-    }
-  }
-
-  return null;
-}
 
 exports.importExcelStudents = async (req, res) => {
   try {
@@ -61,37 +29,46 @@ exports.importExcelStudents = async (req, res) => {
     let currentCounter = startingAdmissionNumber;
     let successCount = 0;
     let errorCount = 0;
-    let totalValidRows = 0;
 
     for (const sheetName of workbook.SheetNames) {
       const sheet = workbook.Sheets[sheetName];
-      const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      if (!Array.isArray(data) || data.length === 0) continue;
+      if (!Array.isArray(rows) || rows.length === 0) continue;
 
-      const headerInfo = findHeaderAndColumns(data);
-      if (!headerInfo) {
-        console.warn(`No header row found in sheet: ${sheetName}`);
-        continue;
-      }
+      for (const row of rows) {
+        if (!row || row.length === 0) continue;
 
-      const { headerRow, serialIdx, nameIdx, assIdx } = headerInfo;
-      const studentRows = data.slice(headerRow + 1);
+        let isStudent = false;
+        let studentName = '';
+        let assessNum = null;
 
-      for (let i = 0; i < studentRows.length; i++) {
-        const row = studentRows[i];
+        for (let i = 0; i < 4; i++) {
+          const currentCell = row[i];
+          const nextCell = row[i + 1];
 
-        const rawSerial = row[serialIdx];
-        if (rawSerial === undefined || rawSerial === null || rawSerial === '') continue;
-        const serial = Number(rawSerial);
-        if (!Number.isInteger(serial) || serial <= 0) continue;
+          if (currentCell === null || currentCell === undefined || String(currentCell).trim() === '') continue;
 
-        const rawName = row[nameIdx];
-        if (!rawName || String(rawName).trim() === '') continue;
+          const num = Number(currentCell);
+          if (Number.isInteger(num) && num > 0) {
+            if (nextCell && typeof nextCell === 'string' && nextCell.trim().length > 2) {
+              isStudent = true;
+              studentName = nextCell.trim();
+
+              const potentialAssess = row[i + 3];
+              if (potentialAssess && String(potentialAssess).trim().length >= 4 && isNaN(Number(potentialAssess))) {
+                assessNum = String(potentialAssess).trim();
+              }
+              break;
+            }
+          }
+        }
+
+        if (!isStudent) continue;
 
         try {
           const student = {
-            name: String(rawName).trim(),
+            name: studentName,
             class: className,
             admissionNumber: String(currentCounter).padStart(3, '0'),
             role: 'student',
@@ -103,11 +80,8 @@ exports.importExcelStudents = async (req, res) => {
             }
           };
 
-          if (assIdx !== undefined) {
-            const rawAss = row[assIdx];
-            if (rawAss && String(rawAss).startsWith('B0')) {
-              student.assessmentNumber = String(rawAss).trim();
-            }
+          if (assessNum) {
+            student.assessmentNumber = assessNum;
           }
 
           if (student.assessmentNumber) {
@@ -123,7 +97,7 @@ exports.importExcelStudents = async (req, res) => {
           successCount++;
           currentCounter++;
         } catch (err) {
-          console.error(`Error processing row ${i} in sheet ${sheetName}:`, err.message);
+          console.error(`Error processing row in sheet ${sheetName}:`, err.message);
           errorCount++;
         }
       }
