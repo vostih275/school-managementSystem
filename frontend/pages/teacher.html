@@ -4596,10 +4596,37 @@
       marksEntryContainer.style.display = 'block';
       console.log('Marks entry container displayed - ready for new entry');
       
-      // Add event delegation for marks input
+      // Add event delegation for marks input (real-time average + clamping)
       marksEntryBody.addEventListener('input', (e) => {
         if (e.target.classList.contains('marks-input')) {
           const subject = e.target.dataset.subject;
+          const input = e.target;
+
+          // Enforce numeric 0-100 values and prevent letters/invalid chars
+          let raw = input.value;
+          if (raw !== '') {
+            // Strip anything that isn't a digit or a single decimal point
+            raw = raw.replace(/[^0-9.]/g, '');
+            // Ensure only one decimal point
+            const parts = raw.split('.');
+            if (parts.length > 2) {
+              raw = parts[0] + '.' + parts.slice(1).join('');
+            }
+
+            let val = parseFloat(raw);
+            if (isNaN(val)) {
+              raw = '';
+            } else if (val > 100) {
+              raw = '100';
+            } else if (val < 0) {
+              raw = '0';
+            }
+
+            if (input.value !== raw) {
+              input.value = raw;
+            }
+          }
+
           const inputs = ['ass1', 'ass2', 'ass3', 'ass4'].map(key =>
             document.querySelector(`#${key}-${subject}`)
           );
@@ -4613,7 +4640,7 @@
           const gradeCell = document.querySelector(`#grade-${subject}`);
 
           if (avgCell) {
-            avgCell.textContent = average !== null ? average.toFixed(2) : '-';
+            avgCell.textContent = average !== null ? average.toFixed(1) : '0';
           }
           if (gradeCell) {
             gradeCell.textContent = average !== null ? getGradeFromMarks(average) : '-';
