@@ -217,144 +217,139 @@ function getGradeRemarks(grade) {
     return grade || 'N/A';
 }
 
+// Function to format a single mark cell (shows '-' for null/undefined/blank)
+function formatMark(value) {
+    if (value === null || value === undefined || value === '') return '-';
+    if (typeof value === 'number') return value.toString();
+    return value;
+}
+
 // Function to update the report card preview
-function updateReportCardPreview(marksData) {
+function updateReportCardPreview(reportData) {
     console.log('=== updateReportCardPreview called ===');
-    console.log('Marks data received:', marksData);
-    
+    console.log('Report data received:', reportData);
+
     try {
-        // Update student info
+        // Normalize incoming data (backend wraps in data property; local data is flat)
+        const payload = reportData.data || reportData;
+        const student = payload.student || {};
+        const subjects = Array.isArray(payload.subjects) ? payload.subjects : [];
+
         const studentSelect = document.getElementById('report-student');
-        console.log('Student select element:', studentSelect);
-        
-        const studentName = studentSelect ? studentSelect.options[studentSelect.selectedIndex].text : 'N/A';
-        console.log('Selected student name:', studentName);
-        
-        const studentNameElement = document.getElementById('student-name');
-        console.log('Student name element:', studentNameElement);
-        
-        if (studentNameElement) {
-            studentNameElement.textContent = studentName;
-        } else {
-            console.error('Student name element not found');
-        }
-        
-        // Update class
-        const classSelect = document.getElementById('class-select');
-        if (classSelect) {
-            document.getElementById('student-class').textContent = classSelect.options[classSelect.selectedIndex].text;
-        }
-        
-        // Update term
+        const classSelect = document.getElementById('report-class');
         const termSelect = document.getElementById('report-term');
-        if (termSelect) {
-            document.getElementById('term-display').textContent = termSelect.value;
-        }
-        
+
+        // Student info (fallback to current form selections if not in payload)
+        const studentName = student.name || (studentSelect ? studentSelect.options[studentSelect.selectedIndex]?.text : 'N/A') || 'N/A';
+        const className = student.class || (classSelect ? classSelect.value : '') || 'N/A';
+        const term = payload.term || (termSelect ? termSelect.value : '') || 'N/A';
+        const year = payload.year || new Date().getFullYear();
+
+        const studentNameElement = document.getElementById('student-name');
+        if (studentNameElement) studentNameElement.textContent = studentName;
+
+        const studentClassElement = document.getElementById('student-class');
+        if (studentClassElement) studentClassElement.textContent = className;
+
+        const termDisplay = document.getElementById('term-display');
+        if (termDisplay) termDisplay.textContent = `${term} (${year})`;
+
+        const reportTermDisplay = document.getElementById('report-term-display');
+        if (reportTermDisplay) reportTermDisplay.textContent = `TERMLY REPORT CARD — ${term} ${year}`;
+
         // Update marks table
         const marksTableBody = document.getElementById('marks-table-body');
         if (marksTableBody) {
             marksTableBody.innerHTML = '';
-            
-            if (marksData.subjects && (Array.isArray(marksData.subjects) ? marksData.subjects.length > 0 : Object.keys(marksData.subjects).length > 0)) {
-                let totalMarks = 0;
-                let subjectCount = 0;
-                
-                // Convert subjects to array if it's an object
-                const subjectsArray = Array.isArray(marksData.subjects) 
-                    ? marksData.subjects 
-                    : Object.entries(marksData.subjects).map(([subject, data]) => ({
-                        subject: subject,
-                        marks: data.marks,
-                        grade: data.grade,
-                        remarks: data.remarks
-                    }));
-                
-                console.log('Processed subjects array:', subjectsArray);
-                
-                // Process each subject
-                subjectsArray.forEach(item => {
+
+            if (subjects.length > 0) {
+                subjects.forEach((item, idx) => {
                     const row = document.createElement('tr');
-                    
-                    // Get subject name, defaulting to 'Subject N' if not available
-                    const subjectName = item.subject || `Subject ${subjectCount + 1}`;
-                    const marks = item.marks || item.mark; // Handle both marks and mark property
-                    const grade = item.grade || (typeof marks === 'number' ? calculateGradeFromMarks(marks) : 'N/A');
-                    
-                    // Format the subject name for display
+
+                    const subjectName = item.subject || `Subject ${idx + 1}`;
                     const formattedSubject = subjectName
                         .toString()
-                        .replace(/-/g, ' ') // Replace hyphens with spaces
-                        .replace(/\b(\w)/g, l => l.toUpperCase()) // Capitalize first letter of each word
-                        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                        .replace(/-/g, ' ')
+                        .replace(/\b(\w)/g, l => l.toUpperCase())
+                        .replace(/\s+/g, ' ')
                         .trim();
-                    
-                    console.log(`Processing subject: ${formattedSubject}, marks: ${marks}, grade: ${grade}`);
-                    
-                    const subjectCell = document.createElement('td');
-                    subjectCell.textContent = formattedSubject;
-                    
-                    const marksCell = document.createElement('td');
-                    marksCell.textContent = marks !== undefined ? marks : 'N/A';
-                    
-                    const gradeCell = document.createElement('td');
-                    gradeCell.textContent = grade;
-                    
-                    const remarksCell = document.createElement('td');
-                    remarksCell.textContent = item.remarks || getGradeRemarks(grade);
-                    
-                    row.appendChild(subjectCell);
-                    row.appendChild(marksCell);
-                    row.appendChild(gradeCell);
-                    row.appendChild(remarksCell);
-                    
+
+                    const a = item.assessments || {};
+                    const ass1 = a.ass1 !== undefined ? a.ass1 : (item.ass1 !== undefined ? item.ass1 : null);
+                    const ass2 = a.ass2 !== undefined ? a.ass2 : (item.ass2 !== undefined ? item.ass2 : null);
+                    const ass3 = a.ass3 !== undefined ? a.ass3 : (item.ass3 !== undefined ? item.ass3 : null);
+                    const ass4 = a.ass4 !== undefined ? a.ass4 : (item.ass4 !== undefined ? item.ass4 : null);
+
+                    const subjectAverage = item.subjectAverage !== undefined && item.subjectAverage !== null
+                        ? item.subjectAverage
+                        : (item.marks !== undefined && item.marks !== null ? item.marks : null);
+                    const grade = item.grade || (typeof subjectAverage === 'number' ? calculateGradeFromMarks(subjectAverage) : 'N/A');
+                    const points = item.points !== undefined && item.points !== null ? item.points : '-';
+                    const subjectPosition = item.subjectPosition !== undefined ? item.subjectPosition : null;
+                    const totalStudents = item.totalStudents !== undefined ? item.totalStudents : payload.classSize;
+                    const improvement = item.improvement || '-';
+                    const remarks = item.remarks || grade || '';
+
+                    const cells = [
+                        formattedSubject,
+                        formatMark(ass1),
+                        formatMark(ass2),
+                        formatMark(ass3),
+                        formatMark(ass4),
+                        formatMark(subjectAverage),
+                        grade || '-',
+                        points,
+                        subjectPosition !== null && totalStudents ? `${subjectPosition} / ${totalStudents}` : '-',
+                        improvement,
+                        remarks || '-'
+                    ];
+
+                    cells.forEach((text, i) => {
+                        const td = document.createElement('td');
+                        td.textContent = text;
+                        td.style.padding = '10px';
+                        td.style.border = '1px solid #ddd';
+                        if (i > 0) td.style.textAlign = 'center';
+                        row.appendChild(td);
+                    });
+
                     marksTableBody.appendChild(row);
-                    
-                    // Calculate total for average
-                    if (typeof marks === 'number') {
-                        totalMarks += marks;
-                        subjectCount++;
-                    } else if (typeof marks === 'string' && !isNaN(parseFloat(marks))) {
-                        totalMarks += parseFloat(marks);
-                        subjectCount++;
-                    }
                 });
-                
-                // Calculate and display average
-                const average = subjectCount > 0 ? (totalMarks / subjectCount).toFixed(2) : 0;
-                const averageGrade = calculateGradeFromMarks(average);
-                
-                // Update the summary section
-                const totalMarksElement = document.getElementById('total-marks');
-                const averageScoreElement = document.getElementById('average-score');
-                const overallGradeElement = document.getElementById('overall-grade');
-                const remarksElement = document.getElementById('teacher-remarks-preview');
-                
-                if (totalMarksElement) totalMarksElement.textContent = totalMarks.toFixed(2);
-                if (averageScoreElement) averageScoreElement.textContent = `${average}%`;
-                if (overallGradeElement) overallGradeElement.textContent = averageGrade;
-                if (remarksElement) remarksElement.textContent = marksData.teacherRemarks || 'No remarks provided';
-                
-                // Show action buttons
-                const downloadBtn = document.getElementById('download-pdf');
-                const sendBtn = document.getElementById('send-to-student');
-                const deleteBtn = document.getElementById('delete-report');
-                
-                if (downloadBtn) downloadBtn.style.display = 'inline-block';
-                if (sendBtn) sendBtn.style.display = 'inline-block';
-                if (deleteBtn) deleteBtn.style.display = 'inline-block';
-                
             } else {
-                marksTableBody.innerHTML = '<tr><td colspan="4" class="text-center">No marks data available</td></tr>';
+                marksTableBody.innerHTML = '<tr><td colspan="11" class="text-center">No marks data available</td></tr>';
             }
         }
-        
+
+        // Update the summary section
+        const termAverage = payload.termAverage !== undefined && payload.termAverage !== null ? payload.termAverage : null;
+        const classPosition = payload.classPosition !== undefined && payload.classPosition !== null ? payload.classPosition : null;
+        const classSize = payload.classSize !== undefined && payload.classSize !== null ? payload.classSize : null;
+
+        const averageScoreElement = document.getElementById('average-score');
+        if (averageScoreElement) averageScoreElement.textContent = termAverage !== null ? `${termAverage}%` : '-';
+
+        const classPositionElement = document.getElementById('class-position');
+        if (classPositionElement) classPositionElement.textContent = (classPosition !== null && classSize !== null) ? `${classPosition} out of ${classSize}` : '-';
+
+        const overallGradeElement = document.getElementById('overall-grade');
+        if (overallGradeElement) overallGradeElement.textContent = termAverage !== null ? calculateGradeFromMarks(termAverage) : '-';
+
+        const remarksElement = document.getElementById('teacher-remarks-preview');
+        if (remarksElement) remarksElement.textContent = payload.teacherRemarks || 'No remarks provided';
+
+        // Show action buttons
+        const downloadBtn = document.getElementById('download-pdf');
+        const sendBtn = document.getElementById('send-to-student');
+        const deleteBtn = document.getElementById('delete-report');
+
+        if (downloadBtn) downloadBtn.style.display = 'inline-block';
+        if (sendBtn) sendBtn.style.display = 'inline-block';
+        if (deleteBtn) deleteBtn.style.display = 'inline-block';
+
         // Show the preview section
         const previewSection = document.querySelector('.preview-section');
-        if (previewSection) {
-            previewSection.style.display = 'block';
-        }
-        
+        if (previewSection) previewSection.style.display = 'block';
+
     } catch (error) {
         console.error('Error updating report card preview:', error);
         showAlert('Failed to update report card preview. Please try again.', 'error');
@@ -473,18 +468,18 @@ function sendReportCardToStudent() {
 // Function to preview the report card
 async function previewReportCard(event) {
     console.log('=== previewReportCard called ===');
-    
+
     // Prevent default form submission if any
     if (event) event.preventDefault();
-    
+
     console.log('Event target:', event ? event.target : 'no event');
-    
+
     try {
         // Get selected values
         const studentSelect = document.getElementById('report-student');
         const termSelect = document.getElementById('report-term');
         const classSelect = document.getElementById('report-class');
-        
+
         console.log('Form elements:', {
             studentSelect: studentSelect ? 'found' : 'not found',
             termSelect: termSelect ? 'found' : 'not found',
@@ -493,14 +488,14 @@ async function previewReportCard(event) {
             termValue: termSelect ? termSelect.value : 'N/A',
             classValue: classSelect ? classSelect.value : 'N/A'
         });
-        
+
         if (!studentSelect || !termSelect || !classSelect) {
             const errorMsg = 'Required form elements not found. Please refresh the page and try again.';
             console.error(errorMsg, {studentSelect, termSelect, classSelect});
             showAlert(errorMsg, 'error');
             return;
         }
-        
+
         const studentId = studentSelect.value.trim();
         const term = termSelect.value.trim();
         const className = classSelect.value.trim();
@@ -509,127 +504,65 @@ async function previewReportCard(event) {
 
         // Validate selections
         if (!studentId) {
-            const msg = 'Please select a student';
-            console.warn(msg);
-            showAlert(msg, 'error');
+            showAlert('Please select a student', 'error');
             return;
         }
         if (!term) {
-            const msg = 'Please select a term';
-            console.warn(msg);
-            showAlert(msg, 'error');
+            showAlert('Please select a term', 'error');
             return;
         }
         if (!className) {
-            const msg = 'Please select a class first';
-            console.warn(msg);
-            showAlert(msg, 'error');
+            showAlert('Please select a class first', 'error');
             return;
         }
-        
-        console.log('All validations passed, proceeding to load marks...');
 
-        // Show loading state
-        const generateBtn = document.getElementById('generate-report-card');
-        if (!generateBtn) {
-            console.error('Generate button not found');
+        const year = new Date().getFullYear();
+        const token = localStorage.getItem('token');
+        if (!token) {
+            showAlert('You are not authenticated. Please log in again.', 'error');
             return;
         }
-        
-        const originalBtnText = generateBtn.innerHTML;
-        generateBtn.disabled = true;
-        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-        
-        // Show loading state in the preview section
+
+        const generateBtn = document.getElementById('generate-report-card');
+        const originalBtnText = generateBtn ? generateBtn.innerHTML : '';
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        }
+
         const marksTableBody = document.getElementById('marks-table-body');
         if (marksTableBody) {
-            marksTableBody.innerHTML = '<tr><td colspan="4" class="text-center">Loading report card...</td></tr>';
+            marksTableBody.innerHTML = '<tr><td colspan="11" class="text-center">Loading report card...</td></tr>';
         }
-        
+
         try {
-            // Try to load from localStorage first
-            const marksKey = `marks-${studentId}-${term}`;
-            let marksData = localStorage.getItem(marksKey);
-            let loadedFromCache = true;
-            
-            // If not in localStorage, try to fetch from API
-            if (!marksData) {
-                console.log('No marks found in localStorage, fetching from API...');
-                const token = localStorage.getItem('token');
-                if (!token) throw new Error('Not authenticated');
-                
-                // First, try to get the report card which includes marks by term
-                const reportCardResponse = await fetch(`${API_BASE_URL}/marks/report-card/${studentId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!reportCardResponse.ok) {
-                    // If report card endpoint fails, try the basic marks endpoint
-                    console.log('Report card endpoint failed, trying basic marks endpoint...');
-                    const marksResponse = await fetch(`${API_BASE_URL}/marks/student/${studentId}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    if (!marksResponse.ok) {
-                        const error = await marksResponse.json().catch(() => ({}));
-                        throw new Error(error.message || 'Failed to fetch marks');
-                    }
-                    
-                    marksData = await marksResponse.json();
-                    // Filter marks by the selected term if needed
-                    if (marksData && marksData.marks) {
-                        marksData.marks = marksData.marks.filter(mark => mark.term === term);
-                    }
-                    return marksData;
+            const response = await fetch(`${API_BASE_URL}/reports/generate/${encodeURIComponent(studentId)}/${encodeURIComponent(term)}/${year}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
-                
-                // If we get here, we have a successful report card response
-                const reportCardData = await reportCardResponse.json();
-                // If the report card has term-specific data, filter by the selected term
-                if (reportCardData.terms && reportCardData.terms[term]) {
-                    marksData = reportCardData.terms[term];
-                } else {
-                    marksData = reportCardData;
-                }
-                loadedFromCache = false;
-                
-                // Save to localStorage for future use
-                localStorage.setItem(marksKey, JSON.stringify(marksData));
-            } else {
-                // Parse the marks data from cache
-                marksData = JSON.parse(marksData);
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || `Server returned ${response.status}`);
             }
-            
-            console.log(loadedFromCache ? 'Loaded marks from localStorage:' : 'Fetched marks from API:', marksData);
-            
-            // Log the marks data structure for debugging
-            console.log('Marks data structure:', marksData);
-            console.log('Marks data keys:', Object.keys(marksData));
-            if (marksData && marksData.subjects) {
-                console.log('Subjects data:', marksData.subjects);
-                console.log('Subjects keys:', Object.keys(marksData.subjects));
-            }
-            
-            // Update the report card preview
-            updateReportCardPreview(marksData);
+
+            const reportData = await response.json();
+            console.log('Comprehensive report data:', reportData);
+
+            updateReportCardPreview(reportData);
             showAlert('Report card generated successfully', 'success');
-            
+
         } catch (error) {
-            console.error('Error loading marks:', error);
-            showAlert(`Failed to load marks: ${error.message || 'Please try again later'}`, 'error');
-            
-            // Clear the loading state in the table
+            console.error('Error loading comprehensive report:', error);
+            showAlert(`Failed to load report card: ${error.message || 'Please try again later'}`, 'error');
+
             if (marksTableBody) {
-                marksTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Failed to load marks. Please try again.</td></tr>';
+                marksTableBody.innerHTML = '<tr><td colspan="11" class="text-center text-danger">Failed to load marks. Please try again.</td></tr>';
             }
         } finally {
-            // Restore the button state
             if (generateBtn) {
                 generateBtn.disabled = false;
                 generateBtn.innerHTML = originalBtnText;
