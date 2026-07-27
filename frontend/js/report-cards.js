@@ -345,11 +345,29 @@ function updateReportCardPreview(reportData) {
 
         const html = `
         <div class="official-report-card" style="background:#fff; color:#000; padding:20px; font-family:Arial, sans-serif; font-size:13px; line-height:1.4;">
-            <div style="text-align:center; margin-bottom:15px;">
-                <img src="../images/graduation-cap.png" alt="School logo" style="max-height:70px; margin-bottom:8px;" onerror="this.style.display='none'">
-                <h2 style="margin:0; font-size:20px; text-transform:uppercase; letter-spacing:1px;">AIC LOKICHOGGIO GIRLS PRIMARY & JUNIOR</h2>
-                <h3 style="margin:8px 0 4px; font-size:18px; text-transform:uppercase;">Learner's Progress Report Form</h3>
-                <div style="font-size:15px; font-weight:700;">TERM ${termNumber} - ${year}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px double #000; padding-bottom: 15px; margin-bottom: 20px;">
+
+                <!-- Left: School Badge Placeholder -->
+                <div style="flex: 1; text-align: left;">
+                    <img src="/images/logo.png" alt="School Badge" style="max-height: 90px; width: auto;">
+                </div>
+
+                <!-- Center: School Information -->
+                <div style="flex: 3; text-align: center;">
+                    <h1 style="margin: 0; font-size: 22px; font-weight: bold; text-transform: uppercase;">AIC LOKICHOGGIO GIRLS JUNIOR SCHOOL</h1>
+                    <p style="margin: 5px 0 0 0; font-size: 14px;">
+                        P.O BOX 11-30503, LOKICHOGGIO. &nbsp;|&nbsp;
+                        <span style="font-size: 16px;">&#9742;</span> TEL: 0745994826 / 0708474334
+                    </p>
+                    <p style="margin: 2px 0 0 0; font-size: 14px;">E-mail: aiclokichoggiogirls@gmail.com</p>
+                    <p style="margin: 5px 0 0 0; font-size: 15px; font-style: italic; font-weight: bold;">MOTTO: Strive for excellence</p>
+                </div>
+
+                <!-- Right: Graduation Cap Placeholder -->
+                <div style="flex: 1; text-align: right;">
+                    <img src="/images/graduation-cap.png" alt="Graduation Cap" style="max-height: 90px; width: auto;">
+                </div>
+
             </div>
 
             <div style="margin-bottom:15px;">
