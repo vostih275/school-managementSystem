@@ -580,6 +580,27 @@
             </select>
           </div>
           
+          <!-- Bulk Import Students -->
+          <div class="bulk-import-container" style="margin-top: 20px; padding: 15px; background: #fff; border-radius: 6px; border: 1px solid #dee2e6;">
+            <h3>Bulk Import Students</h3>
+            <form id="bulk-import-form">
+              <div class="form-group" style="margin-bottom: 10px;">
+                <label for="import-file">Excel File (.xlsx)</label>
+                <input type="file" id="import-file" name="file" accept=".xlsx" required style="display: block; width: 100%; padding: 6px; border: 1px solid #ced4da; border-radius: 4px;" />
+              </div>
+              <div class="form-group" style="margin-bottom: 10px;">
+                <label for="import-class">Class Name</label>
+                <input type="text" id="import-class" name="className" placeholder="e.g. Grade 9" required style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" />
+              </div>
+              <div class="form-group" style="margin-bottom: 10px;">
+                <label for="import-starting-number">Starting Admission Number</label>
+                <input type="number" id="import-starting-number" name="startingNumber" value="56" min="1" required style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" />
+              </div>
+              <button type="submit" class="btn btn-primary" style="padding: 8px 16px;">Upload</button>
+              <div id="import-message" style="margin-top: 10px; display: none;"></div>
+            </form>
+          </div>
+          
           <!-- Student List -->
           <div class="student-list-container">
             <h3>Students</h3>
@@ -5195,6 +5216,59 @@
   
   <!-- Report Cards JavaScript -->
   <script src="../js/report-cards.js"></script>
+
+  <!-- Bulk Import Students Handler -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const importForm = document.getElementById('bulk-import-form');
+      if (importForm) {
+        importForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          const msgDiv = document.getElementById('import-message');
+          msgDiv.style.display = 'block';
+          msgDiv.textContent = 'Uploading...';
+          msgDiv.style.color = 'blue';
+
+          const token = localStorage.getItem('token');
+          if (!token) {
+            msgDiv.textContent = 'Please log in first';
+            msgDiv.style.color = 'red';
+            return;
+          }
+
+          const formData = new FormData(importForm);
+          formData.set('startingNumber', document.getElementById('import-starting-number').value);
+
+          try {
+            const baseUrl = window.API_CONFIG?.BASE_URL || window.location.origin;
+            const response = await fetch(`${baseUrl}/api/users/import-excel`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` },
+              body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+              msgDiv.textContent = data.message || `Imported ${data.imported} students`;
+              msgDiv.style.color = 'green';
+              importForm.reset();
+              const classSelect = document.getElementById('class-select');
+              if (classSelect && classSelect.value) {
+                classSelect.dispatchEvent(new Event('change'));
+              }
+            } else {
+              throw new Error(data.message || 'Import failed');
+            }
+          } catch (error) {
+            console.error('Import error:', error);
+            msgDiv.textContent = 'Error: ' + (error.message || 'Import failed');
+            msgDiv.style.color = 'red';
+          }
+        });
+      }
+    });
+  </script>
   </main>
 </body>
 </html>

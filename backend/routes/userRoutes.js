@@ -1,8 +1,12 @@
 const express = require('express');
+const multer = require('multer');
 const User = require('../models/User');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 const { provisionUser } = require('../controllers/authController');
+const { importExcelStudents } = require('../controllers/userController');
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Debug middleware to log all requests to user routes
 router.use((req, res, next) => {
@@ -164,5 +168,12 @@ router.get('/me', protect, async (req, res) => {
  * @access  Private (Admin or Teacher)
  */
 router.post('/provision', protect, authorize('admin', 'teacher'), provisionUser);
+
+/**
+ * @route   POST /api/users/import-excel
+ * @desc    Bulk import students from an Excel file
+ * @access  Private (Teacher)
+ */
+router.post('/import-excel', protect, authorize('admin', 'teacher'), upload.single('file'), importExcelStudents);
 
 module.exports = router;
