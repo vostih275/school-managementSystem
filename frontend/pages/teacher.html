@@ -3340,8 +3340,12 @@
                 <thead>
                   <tr style="background-color: #f8f9fa;">
                     <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Subject</th>
-                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 150px;">Marks (0-100)</th>
-                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 150px;">Grade</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 90px;">Ass 1</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 90px;">Ass 2</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 90px;">Ass 3</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 90px;">Ass 4</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 100px;">Average</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 120px;">Grade</th>
                   </tr>
                 </thead>
                 <tbody id="marks-entry-body">
@@ -3412,10 +3416,18 @@
                 <button id="generate-report-card" class="btn btn-primary">
                   <i class="fas fa-eye"></i> Generate Report Card
                 </button>
+                <button id="view-class-analytics" class="btn btn-info" style="margin-left: 10px;">
+                  <i class="fas fa-chart-bar"></i> Class Analytics
+                </button>
               </div>
             </div>
           </div>
-          
+
+          <!-- Class Analytics Panel -->
+          <div id="class-analytics-panel" class="report-card" style="display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px;">
+            <!-- Analytics rendered here by JS -->
+          </div>
+
           <!-- Report Card Preview -->
           <div id="report-card-preview" class="report-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
             <div style="text-align: center; margin-bottom: 20px;">
@@ -4539,15 +4551,27 @@
         row.innerHTML = `
           <td style="padding: 10px; border: 1px solid #ddd;">${subject}</td>
           <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
-            <input type="number" 
-                   class="form-control marks-input" 
-                   min="0" 
-                   max="100" 
-                   id="marks-${subjectId}" 
-                   data-subject="${subjectId}"
-                   style="width: 80px; margin: 0 auto; text-align: center;"
-                   placeholder="0-100"
-                   value="">
+            <input type="number" class="form-control marks-input" min="0" max="100"
+                   id="ass1-${subjectId}" data-subject="${subjectId}" data-ass="ass1"
+                   style="width: 70px; margin: 0 auto; text-align: center;" placeholder="0-100" value="">
+          </td>
+          <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+            <input type="number" class="form-control marks-input" min="0" max="100"
+                   id="ass2-${subjectId}" data-subject="${subjectId}" data-ass="ass2"
+                   style="width: 70px; margin: 0 auto; text-align: center;" placeholder="0-100" value="">
+          </td>
+          <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+            <input type="number" class="form-control marks-input" min="0" max="100"
+                   id="ass3-${subjectId}" data-subject="${subjectId}" data-ass="ass3"
+                   style="width: 70px; margin: 0 auto; text-align: center;" placeholder="0-100" value="">
+          </td>
+          <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+            <input type="number" class="form-control marks-input" min="0" max="100"
+                   id="ass4-${subjectId}" data-subject="${subjectId}" data-ass="ass4"
+                   style="width: 70px; margin: 0 auto; text-align: center;" placeholder="0-100" value="">
+          </td>
+          <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+            <span id="avg-${subjectId}" class="avg-display">-</span>
           </td>
           <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
             <span id="grade-${subjectId}" class="grade-display">-</span>
@@ -4568,12 +4592,24 @@
       // Add event delegation for marks input
       marksEntryBody.addEventListener('input', (e) => {
         if (e.target.classList.contains('marks-input')) {
-          const marks = e.target.value ? parseInt(e.target.value) : '';
           const subject = e.target.dataset.subject;
+          const inputs = ['ass1', 'ass2', 'ass3', 'ass4'].map(key =>
+            document.querySelector(`#${key}-${subject}`)
+          );
+
+          const values = inputs
+            .map(input => input && input.value !== '' ? parseFloat(input.value) : NaN)
+            .filter(v => !isNaN(v));
+
+          const average = values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+          const avgCell = document.querySelector(`#avg-${subject}`);
           const gradeCell = document.querySelector(`#grade-${subject}`);
-          
+
+          if (avgCell) {
+            avgCell.textContent = average !== null ? average.toFixed(2) : '-';
+          }
           if (gradeCell) {
-            gradeCell.textContent = marks !== '' ? getGradeFromMarks(marks) : '-';
+            gradeCell.textContent = average !== null ? getGradeFromMarks(average) : '-';
           }
         }
       });
@@ -4906,27 +4942,38 @@
                 throw new Error('Please select both student and term');
             }
             
-            // Collect marks
+            // Collect marks (4 CBC assessments per subject)
             const marks = [];
             const rows = document.querySelectorAll('#marks-entry-body tr');
-            
+            const year = document.getElementById('marks-year')?.value || new Date().getFullYear();
+
             rows.forEach(row => {
-                const marksInput = row.querySelector('input[type="number"]');
-                const subjectId = marksInput.id.replace('marks-', '');
-                const marksValue = marksInput.value ? parseFloat(marksInput.value) : 0;
-                const grade = calculateGradeFromMarks(marksValue);
-                
+                const subjectCell = row.querySelector('td:first-child');
+                const subject = subjectCell ? subjectCell.textContent.trim() : '';
+                const subjectId = subject.replace(/\s+/g, '-').toLowerCase();
+
+                const ass1 = row.querySelector(`#ass1-${subjectId}`)?.value ? parseFloat(row.querySelector(`#ass1-${subjectId}`).value) : null;
+                const ass2 = row.querySelector(`#ass2-${subjectId}`)?.value ? parseFloat(row.querySelector(`#ass2-${subjectId}`).value) : null;
+                const ass3 = row.querySelector(`#ass3-${subjectId}`)?.value ? parseFloat(row.querySelector(`#ass3-${subjectId}`).value) : null;
+                const ass4 = row.querySelector(`#ass4-${subjectId}`)?.value ? parseFloat(row.querySelector(`#ass4-${subjectId}`).value) : null;
+
+                const values = [ass1, ass2, ass3, ass4].filter(v => typeof v === 'number' && !isNaN(v));
+                const average = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+                const grade = values.length ? calculateGradeFromMarks(average) : '-';
+
                 marks.push({
-                    subject: subjectId,
-                    marks: marksValue,
+                    subject: subject,
+                    assessments: { ass1, ass2, ass3, ass4 },
+                    marks: average,
                     grade: grade
                 });
             });
-            
+
             // Prepare data
             const marksData = {
                 studentId: studentId,
                 term: term,
+                year: year,
                 subjects: marks,
                 teacherRemarks: teacherRemarks
             };
@@ -4943,10 +4990,11 @@
                 console.log('Request body:', {
                     studentId: studentId,
                     term: term,
+                    year: year,
                     subjects: marks,
                     teacherRemarks: teacherRemarks
                 });
-                
+
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
@@ -4956,6 +5004,7 @@
                     body: JSON.stringify({
                         studentId: studentId,
                         term: term,
+                        year: year,
                         subjects: marks,
                         teacherRemarks: teacherRemarks
                     })
@@ -5029,25 +5078,35 @@
                             <thead>
                                 <tr>
                                     <th>Subject</th>
-                                    <th>Marks</th>
+                                    <th>Ass 1</th>
+                                    <th>Ass 2</th>
+                                    <th>Ass 3</th>
+                                    <th>Ass 4</th>
+                                    <th>Average</th>
                                     <th>Grade</th>
                                     <th>Remarks</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${marksData.subjects.map(subject => `
+                                ${marksData.subjects.map(subject => {
+                                    const a = subject.assessments || {};
+                                    const avg = (typeof subject.marks === 'number') ? subject.marks.toFixed(2) : '-';
+                                    return `
                                     <tr>
                                         <td>${subject.subject}</td>
-                                        <td>${subject.marks}</td>
-                                        <td>${subject.grade}</td>
+                                        <td>${a.ass1 !== null && a.ass1 !== undefined ? a.ass1 : '-'}</td>
+                                        <td>${a.ass2 !== null && a.ass2 !== undefined ? a.ass2 : '-'}</td>
+                                        <td>${a.ass3 !== null && a.ass3 !== undefined ? a.ass3 : '-'}</td>
+                                        <td>${a.ass4 !== null && a.ass4 !== undefined ? a.ass4 : '-'}</td>
+                                        <td>${avg}</td>
+                                        <td>${subject.grade || '-'}</td>
                                         <td>${getGradeRemarks(subject.grade)}</td>
                                     </tr>
-                                `).join('')}
+                                `}).join('')}
                             </tbody>
                         </table>
                     </div>
                     <div class="summary">
-                        <p><strong>Total Marks:</strong> ${totalMarks}</p>
                         <p><strong>Average Score:</strong> ${averageScore}</p>
                         <p><strong>Overall Grade:</strong> ${overallGrade}</p>
                     </div>
@@ -5108,6 +5167,95 @@
         }
     }
 
+    // Helper function to load and render class analytics
+    async function loadClassAnalytics() {
+        const classSelect = document.getElementById('report-class');
+        const termSelect = document.getElementById('report-term');
+        const panel = document.getElementById('class-analytics-panel');
+        if (!classSelect || !termSelect || !panel) return;
+
+        const className = classSelect.value;
+        const term = termSelect.value;
+        if (!className || !term) {
+            showToast('Please select a class and term', 'warning');
+            return;
+        }
+
+        const year = new Date().getFullYear();
+        const token = localStorage.getItem('token');
+        if (!token) {
+            showToast('Please log in first', 'error');
+            return;
+        }
+
+        try {
+            panel.style.display = 'block';
+            panel.innerHTML = '<p>Loading analytics...</p>';
+            const baseUrl = window.API_CONFIG?.BASE_URL || window.location.origin;
+            const response = await fetch(`${baseUrl}/api/analytics/class/${encodeURIComponent(className)}?term=${encodeURIComponent(term)}&year=${year}`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Failed to load analytics');
+            }
+
+            const { students, subjectSummaries, previousTerm, studentCount } = data.data;
+            panel.innerHTML = `
+                <div class="analytics-summary" style="margin-bottom: 15px;">
+                    <h4 style="margin: 0;">Class Analytics: ${className} (${term} ${year})</h4>
+                    <p style="margin: 5px 0 0; color: #666;">Students: ${studentCount || students.length} | Previous term: ${previousTerm || 'N/A'}</p>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Position</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Student</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Average</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Improvement</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${students.map(s => `
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #ddd;">${s.position}</td>
+                                <td style="padding: 10px; border: 1px solid #ddd;">${s.name}</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${s.average}</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${s.improvement !== null ? (s.improvement >= 0 ? '+' : '') + s.improvement : 'N/A'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <h4 style="margin-bottom: 10px;">Subject Summaries</h4>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Subject</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Average</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Highest</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Lowest</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${subjectSummaries.map(s => `
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #ddd;">${s.subject}</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${s.average}</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${s.highest}</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${s.lowest}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } catch (error) {
+            console.error('Class analytics error:', error);
+            panel.innerHTML = '<p style="color: red;">Could not load analytics.</p>';
+            showToast('Failed to load class analytics', 'error');
+        }
+    }
+
     // Initialize report card section
     async function initializeReportCardSection() {
         try {
@@ -5136,6 +5284,12 @@
                 return;
             }
             console.log('Found generate report card button:', generateReportBtn);
+
+            // Get and wire class analytics button
+            const analyticsBtn = document.getElementById('view-class-analytics');
+            if (analyticsBtn) {
+                analyticsBtn.addEventListener('click', loadClassAnalytics);
+            }
 
             // Add event listener for class selection
             classSelect.addEventListener('change', async function() {
