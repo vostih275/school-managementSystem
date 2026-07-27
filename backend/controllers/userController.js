@@ -62,12 +62,11 @@ exports.importExcelStudents = async (req, res) => {
 
       if (data.length === 0) continue;
 
-      const { nameIdx, assIdx } = detectColumns(data);
-
       const validRows = data.filter(row => {
-        if (!row[assIdx] || typeof row[assIdx] !== 'string') return false;
-        if (!row[nameIdx] || typeof row[nameIdx] !== 'string' || row[nameIdx].trim() === '') return false;
-        return row[assIdx].startsWith('B0');
+        const serial = Number(row[1]);
+        if (!Number.isInteger(serial) || serial <= 0) return false;
+        if (!row[2] || String(row[2]).trim() === '') return false;
+        return true;
       });
 
       if (validRows.length === 0) continue;
@@ -78,8 +77,7 @@ exports.importExcelStudents = async (req, res) => {
 
         try {
           const student = {
-            name: row[nameIdx],
-            assessmentNumber: row[assIdx],
+            name: String(row[2]).trim(),
             class: className,
             admissionNumber: String(currentCounter).padStart(3, '0'),
             role: 'student',
@@ -91,11 +89,19 @@ exports.importExcelStudents = async (req, res) => {
             }
           };
 
-          await User.updateOne(
-            { assessmentNumber: student.assessmentNumber },
-            { $set: student },
-            { upsert: true }
-          );
+          if (row[4] && String(row[4]).startsWith('B0')) {
+            student.assessmentNumber = String(row[4]).trim();
+          }
+
+          if (student.assessmentNumber) {
+            await User.updateOne(
+              { assessmentNumber: student.assessmentNumber },
+              { $set: student },
+              { upsert: true }
+            );
+          } else {
+            await User.create(student);
+          }
 
           successCount++;
           currentCounter++;
