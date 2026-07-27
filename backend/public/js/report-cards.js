@@ -1,5 +1,5 @@
 // API base URL - resolved from global config set by config.js
-const apiBase = (window.API_CONFIG?.API_BASE_URL || 'https://aic-school-system-c0j6.onrender.com/api').replace(/\/$/, '');
+const apiBase = (window.API_CONFIG?.API_BASE_URL || `${window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com'}/api`).replace(/\/$/, '');
 
 // Function to show alert messages
 function showAlert(message, type = 'info') {
