@@ -443,7 +443,7 @@ exports.buildTermReportData = buildTermReportData = async (studentId, term, acad
 exports.getReportCard = async (req, res) => {
     try {
         const { studentId } = req.params;
-        const { term, academicYear, download, regenerate } = req.query;
+        let { term, academicYear, download, regenerate } = req.query;
 
         if (!mongoose.Types.ObjectId.isValid(studentId)) {
             return res.status(400).json({ success: false, message: 'Invalid student ID' });
@@ -454,9 +454,20 @@ exports.getReportCard = async (req, res) => {
                 message: 'Both term and academicYear query parameters are required (e.g., ?term=1&academicYear=2026-2027)'
             });
         }
-        if (![1, 2, 3].includes(parseInt(term, 10))) {
+
+        // Normalize term: accept '1', 'Term 1', etc.
+        const termMatch = String(term).match(/\d+/);
+        term = termMatch ? parseInt(termMatch[0], 10) : null;
+        if (!term || ![1, 2, 3].includes(term)) {
             return res.status(400).json({ success: false, message: 'Term must be 1, 2, or 3' });
         }
+
+        // Normalize academicYear: accept a single year (2026) and expand to 2026-2027
+        const year = String(academicYear).match(/\d{4}/);
+        if (!year) {
+            return res.status(400).json({ success: false, message: 'academicYear must be a valid 4-digit year' });
+        }
+        academicYear = academicYear.includes('-') ? academicYear : `${year[0]}-${parseInt(year[0], 10) + 1}`;
 
         // Predictable, unique file name
         const safeYear = academicYear.replace(/[^\d-]/g, '');

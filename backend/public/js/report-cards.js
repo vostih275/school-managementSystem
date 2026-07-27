@@ -417,11 +417,10 @@ async function downloadReportCardAsPDF() {
     }
 
     // Derive numeric term (e.g. "Term 1" -> "1")
-    const termNum = termRaw.replace(/\D/g, '') || termRaw;
-
-    // Academic year: current calendar year span e.g. "2026-2027"
+    // Pass the same format used by Marks Entry: term = 'Term 1', year = 2026
+    const term = termRaw;
     const yr = new Date().getFullYear();
-    const academicYear = `${yr}-${yr + 1}`;
+    const academicYear = yr;
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -437,7 +436,7 @@ async function downloadReportCardAsPDF() {
     }
 
     try {
-        const url = `${apiBase}/cbc/report-card/${studentId}?term=${termNum}&academicYear=${encodeURIComponent(academicYear)}&download=true`;
+        const url = `${apiBase}/cbc/report-card/${studentId}?term=${encodeURIComponent(term)}&academicYear=${academicYear}&download=true`;
 
         const response = await fetch(url, {
             method: 'GET',
@@ -457,7 +456,8 @@ async function downloadReportCardAsPDF() {
             const objectUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = objectUrl;
-            a.download = `ReportCard_${studentName.replace(/\s+/g, '_')}_Term${termNum}_${yr}.pdf`;
+            const fileTerm = term.replace(/\D/g, '') || term;
+            a.download = `ReportCard_${studentName.replace(/\s+/g, '_')}_Term${fileTerm}_${yr}.pdf`;
             document.body.appendChild(a);
             a.click();
             setTimeout(() => {
@@ -468,15 +468,16 @@ async function downloadReportCardAsPDF() {
         } else {
             // JSON response with a download URL
             const data = await response.json();
+            const baseHost = apiBase.replace(/\/api$/, '');
             const pdfUrl = data.data?.downloadUrl
-                ? `${BASE.replace('/api', '')}${data.data.downloadUrl}`
-                : (data.data?.filePath ? `${BASE.replace('/api', '')}${data.data.filePath}` : null);
+                ? `${baseHost}${data.data.downloadUrl}`
+                : (data.data?.filePath ? `${baseHost}${data.data.filePath}` : null);
 
             if (pdfUrl) {
                 const a = document.createElement('a');
                 a.href = pdfUrl;
                 a.target = '_blank';
-                a.download = `ReportCard_${studentName.replace(/\s+/g, '_')}_Term${termNum}_${yr}.pdf`;
+                a.download = `ReportCard_${studentName.replace(/\s+/g, '_')}_Term${termRaw.replace(/\D/g, '') || termRaw}_${yr}.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
