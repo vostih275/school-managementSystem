@@ -3615,6 +3615,21 @@
               nav, .sidebar, .tab-nav, button, .btn, .alert, .filters, #confirmDeleteModal, .no-print {
                 display: none !important;
               }
+
+              @page {
+                size: A4;
+                margin: 0;
+              }
+
+              body {
+                margin: 1cm;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+
+              .report-actions {
+                display: none !important;
+              }
             }
           </style>
           
