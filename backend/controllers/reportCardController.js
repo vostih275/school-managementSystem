@@ -1,6 +1,7 @@
 const ReportCard = require('../models/ReportCard');
 const User = require('../models/User');
 const Grade = require('../models/Grade');
+const { JUNIOR_SECONDARY_SUBJECTS } = require('../config/subjects');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
@@ -457,9 +458,12 @@ const generateComprehensiveReport = async (req, res) => {
                 ]));
 
             const subjectPosition = rank(subjectAverage, subjectClassValues);
+            const jssSubject = JUNIOR_SECONDARY_SUBJECTS.find(s => s.name === g.subject);
 
             return {
                 subject: g.subject,
+                subjectCode: jssSubject ? jssSubject.code : '',
+                shortName: jssSubject ? jssSubject.shortName : '',
                 assessments: {
                     ass1: assessments.ass1 ?? null,
                     ass2: assessments.ass2 ?? null,
@@ -473,6 +477,14 @@ const generateComprehensiveReport = async (req, res) => {
                 subjectPosition,
                 totalStudents: subjectClassValues.length
             };
+        });
+
+        // Enforce official JSS subject order (901–912) when codes are present
+        subjects.sort((a, b) => {
+            const codeA = a.subjectCode ? parseInt(a.subjectCode, 10) : Infinity;
+            const codeB = b.subjectCode ? parseInt(b.subjectCode, 10) : Infinity;
+            if (codeA !== codeB) return codeA - codeB;
+            return (a.subject || '').localeCompare(b.subject || '');
         });
 
         res.status(200).json({

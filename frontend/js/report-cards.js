@@ -257,16 +257,24 @@ function updateReportCardPreview(reportData) {
         const reportTermDisplay = document.getElementById('report-term-display');
         if (reportTermDisplay) reportTermDisplay.textContent = `TERMLY REPORT CARD — ${term} ${year}`;
 
-        // Update marks table
+        // Update marks table (sorted by official JSS subject code order)
         const marksTableBody = document.getElementById('marks-table-body');
         if (marksTableBody) {
             marksTableBody.innerHTML = '';
 
-            if (subjects.length > 0) {
-                subjects.forEach((item, idx) => {
+            const sortedSubjects = [...subjects].sort((a, b) => {
+                const codeA = a.subjectCode ? parseInt(a.subjectCode, 10) : Infinity;
+                const codeB = b.subjectCode ? parseInt(b.subjectCode, 10) : Infinity;
+                if (codeA !== codeB) return codeA - codeB;
+                return (a.subject || '').localeCompare(b.subject || '');
+            });
+
+            if (sortedSubjects.length > 0) {
+                sortedSubjects.forEach((item, idx) => {
                     const row = document.createElement('tr');
 
                     const subjectName = item.subject || `Subject ${idx + 1}`;
+                    const subjectCode = item.subjectCode || '';
                     const formattedSubject = subjectName
                         .toString()
                         .replace(/-/g, ' ')
@@ -292,6 +300,7 @@ function updateReportCardPreview(reportData) {
 
                     const cells = [
                         formattedSubject,
+                        subjectCode,
                         formatMark(ass1),
                         formatMark(ass2),
                         formatMark(ass3),
@@ -316,7 +325,7 @@ function updateReportCardPreview(reportData) {
                     marksTableBody.appendChild(row);
                 });
             } else {
-                marksTableBody.innerHTML = '<tr><td colspan="11" class="text-center">No marks data available</td></tr>';
+                marksTableBody.innerHTML = '<tr><td colspan="12" class="text-center">No marks data available</td></tr>';
             }
         }
 
@@ -532,7 +541,7 @@ async function previewReportCard(event) {
 
         const marksTableBody = document.getElementById('marks-table-body');
         if (marksTableBody) {
-            marksTableBody.innerHTML = '<tr><td colspan="11" class="text-center">Loading report card...</td></tr>';
+            marksTableBody.innerHTML = '<tr><td colspan="12" class="text-center">Loading report card...</td></tr>';
         }
 
         try {
@@ -560,7 +569,7 @@ async function previewReportCard(event) {
             showAlert(`Failed to load report card: ${error.message || 'Please try again later'}`, 'error');
 
             if (marksTableBody) {
-                marksTableBody.innerHTML = '<tr><td colspan="11" class="text-center text-danger">Failed to load marks. Please try again.</td></tr>';
+                marksTableBody.innerHTML = '<tr><td colspan="12" class="text-center text-danger">Failed to load marks. Please try again.</td></tr>';
             }
         } finally {
             if (generateBtn) {

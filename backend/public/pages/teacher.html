@@ -3451,6 +3451,7 @@
                 <thead>
                   <tr style="background-color: #f8f9fa;">
                     <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Subject</th>
+                    <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 70px;">Code</th>
                     <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 65px;">ASS1</th>
                     <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 65px;">ASS2</th>
                     <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 65px;">ASS3</th>
@@ -4506,9 +4507,39 @@
         'Social Studies', 'Religious Education', 'Creative Arts and Sports',
         'Agriculture', 'Home Science', 'Life Skills'
       ],
-      'Grade 7': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Health Education', 'Pre-Technical Studies', 'Computer Studies', 'Business Studies', 'Agriculture', 'Life Skills', 'Sports and Physical Education', 'Religious Education', 'Social Studies', 'Performing Arts', 'Visual Arts', 'Home Science', 'Foreign Languages'],
-      'Grade 8': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Health Education', 'Pre-Technical Studies', 'Computer Studies', 'Business Studies', 'Agriculture', 'Life Skills', 'Sports and Physical Education', 'Religious Education', 'Social Studies', 'Performing Arts', 'Visual Arts', 'Home Science', 'Foreign Languages'],
-      'Grade 9': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Health Education', 'Pre-Technical Studies', 'Computer Studies', 'Business Studies', 'Agriculture', 'Life Skills', 'Sports and Physical Education', 'Religious Education', 'Social Studies', 'Performing Arts', 'Visual Arts', 'Home Science', 'Foreign Languages'],
+      'Grade 7': [
+        { code: '901', name: 'English', shortName: 'ENG' },
+        { code: '902', name: 'Kiswahili', shortName: 'KIS' },
+        { code: '903', name: 'Maths', shortName: 'MAT' },
+        { code: '905', name: 'Science', shortName: 'SCIE' },
+        { code: '906', name: 'Agriculture', shortName: 'AGR' },
+        { code: '907', name: 'Social Studies', shortName: 'SST' },
+        { code: '908', name: 'CRE', shortName: 'CRE' },
+        { code: '911', name: 'Creative Arts & Sports', shortName: 'C.A.S' },
+        { code: '912', name: 'Pre-Technical', shortName: 'PRE' }
+      ],
+      'Grade 8': [
+        { code: '901', name: 'English', shortName: 'ENG' },
+        { code: '902', name: 'Kiswahili', shortName: 'KIS' },
+        { code: '903', name: 'Maths', shortName: 'MAT' },
+        { code: '905', name: 'Science', shortName: 'SCIE' },
+        { code: '906', name: 'Agriculture', shortName: 'AGR' },
+        { code: '907', name: 'Social Studies', shortName: 'SST' },
+        { code: '908', name: 'CRE', shortName: 'CRE' },
+        { code: '911', name: 'Creative Arts & Sports', shortName: 'C.A.S' },
+        { code: '912', name: 'Pre-Technical', shortName: 'PRE' }
+      ],
+      'Grade 9': [
+        { code: '901', name: 'English', shortName: 'ENG' },
+        { code: '902', name: 'Kiswahili', shortName: 'KIS' },
+        { code: '903', name: 'Maths', shortName: 'MAT' },
+        { code: '905', name: 'Science', shortName: 'SCIE' },
+        { code: '906', name: 'Agriculture', shortName: 'AGR' },
+        { code: '907', name: 'Social Studies', shortName: 'SST' },
+        { code: '908', name: 'CRE', shortName: 'CRE' },
+        { code: '911', name: 'Creative Arts & Sports', shortName: 'C.A.S' },
+        { code: '912', name: 'Pre-Technical', shortName: 'PRE' }
+      ],
       'Form 1': ['English', 'Kiswahili', 'Mathematics', 'Biology', 'Physics', 'Chemistry', 'Geography', 'History', 'CRE', 'IRE', 'HRE', 'Business Studies', 'Agriculture', 'Computer Studies', 'Home Science', 'Art and Design', 'Music', 'French', 'German', 'Arabic', 'Sign Language', 'Aviation Technology', 'Marine and Fisheries', 'Wood Technology', 'Electrical Technology', 'Metal Technology', 'Power Mechanics', 'Building Construction', 'Drawing and Design', 'Electricity', 'Clothing and Textiles', 'Food and Nutrition'],
       'Form 2': ['English', 'Kiswahili', 'Mathematics', 'Biology', 'Physics', 'Chemistry', 'Geography', 'History', 'CRE', 'IRE', 'HRE', 'Business Studies', 'Agriculture', 'Computer Studies', 'Home Science', 'Art and Design', 'Music', 'French', 'German', 'Arabic', 'Sign Language', 'Aviation Technology', 'Marine and Fisheries', 'Wood Technology', 'Electrical Technology', 'Metal Technology', 'Power Mechanics', 'Building Construction', 'Drawing and Design', 'Electricity', 'Clothing and Textiles', 'Food and Nutrition'],
       'Form 3': ['English', 'Kiswahili', 'Mathematics', 'Biology', 'Physics', 'Chemistry', 'Geography', 'History', 'CRE', 'IRE', 'HRE', 'Business Studies', 'Agriculture', 'Computer Studies', 'Home Science', 'Art and Design', 'Music', 'French', 'German', 'Arabic', 'Sign Language', 'Aviation Technology', 'Marine and Fisheries', 'Wood Technology', 'Electrical Technology', 'Metal Technology', 'Power Mechanics', 'Building Construction', 'Drawing and Design', 'Electricity', 'Clothing and Textiles', 'Food and Nutrition'],
@@ -4561,7 +4592,7 @@
           if (response.ok) {
             const result = await response.json();
             if (Array.isArray(result.data)) {
-              subjects = result.data.map(s => s.name);
+              subjects = result.data;
               console.log('Official JSS subjects loaded:', subjects);
             } else {
               console.warn('Unexpected JSS subjects response shape:', result);
@@ -4587,10 +4618,13 @@
       
       subjects.forEach((subject) => {
         const row = document.createElement('tr');
-        const subjectId = sanitizeSubjectId(subject);
-        
+        const subjectName = subject.name || subject;
+        const subjectCode = subject.code || '';
+        const subjectId = sanitizeSubjectId(subjectName);
+        const subjectLabel = subjectCode ? `${subjectCode} - ${subjectName}` : subjectName;
+
         row.innerHTML = `
-          <td style="padding: 10px; border: 1px solid #ddd;">${subject}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;" data-name="${subjectName}" data-code="${subjectCode}">${subjectLabel}</td>
           <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
             <input type="number" class="form-control marks-input" min="0" max="100"
                    id="ass1-${subjectId}" data-subject="${subjectId}" data-ass="ass1"
@@ -5017,7 +5051,7 @@
 
             rows.forEach(row => {
                 const subjectCell = row.querySelector('td:first-child');
-                const subject = subjectCell ? subjectCell.textContent.trim() : '';
+                const subject = subjectCell ? subjectCell.dataset.name : '';
                 const subjectId = sanitizeSubjectId(subject);
 
                 const ass1 = row.querySelector(`#ass1-${subjectId}`)?.value ? parseFloat(row.querySelector(`#ass1-${subjectId}`).value) : null;
