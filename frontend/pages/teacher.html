@@ -4582,7 +4582,7 @@
         console.log('Fetching official JSS subjects from API for', className);
         try {
           const token = localStorage.getItem('token');
-          const response = await fetch(`${API_BASE_URL}/subjects/junior-secondary`, {
+          const response = await fetch(`${API_BASE_URL}/subjects`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -5087,7 +5087,8 @@
             // Save to API
             const token = localStorage.getItem('token');
             if (token) {
-                const endpoint = `${API_BASE_URL}/marks/students/${studentId}/marks`;
+                const apiBase = `${(window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com')}/api`;
+                const endpoint = `${apiBase}/marks/students/${studentId}/marks`;
                 console.log('Saving marks to:', endpoint);
                 console.log('Request body:', {
                     studentId: studentId,

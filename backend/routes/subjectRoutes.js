@@ -14,4 +14,14 @@ router.get('/junior-secondary', protect, (req, res) => {
     });
 });
 
+// @route   GET /api/subjects
+// @desc    Get official CBC Junior Secondary (Grade 7-9) subject list
+// @access  Private
+router.get('/', protect, (req, res) => {
+    res.status(200).json({
+        success: true,
+        data: JUNIOR_SECONDARY_SUBJECTS
+    });
+});
+
 module.exports = router;
