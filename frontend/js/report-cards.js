@@ -365,7 +365,7 @@ function updateReportCardPreview(reportData) {
 
                 <!-- Right: Graduation Cap Placeholder -->
                 <div style="flex: 1; text-align: right;">
-                    <img src="/images/graduation-cap.png" alt="Graduation Cap" style="max-height: 90px; width: auto;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="80" height="64" fill="#000"><path d="M622.34 153.62L343.09 67.88c-16.92-5.25-34.46-5.25-51.38 0L12.66 153.62C5.1 156.07 0 163.17 0 171.21c0 8.04 5.1 15.14 12.66 17.59L320 272.94l307.34-84.14c7.56-2.45 12.66-9.55 12.66-17.59 0-8.04-5.1-15.14-12.66-17.59zM64 224v118.78c0 42.11 89.59 76.22 224 76.22s224-34.11 224-76.22V224c0 42.11-89.59 76.22-224 76.22S64 266.11 64 224zM320 488c88.22 0 168-18.35 224-47.08V384c-56 28.73-135.78 47.08-224 47.08S96 412.73 64 384v56.92C120 469.65 231.78 488 320 488z"/></svg>
                 </div>
 
             </div>
