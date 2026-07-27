@@ -311,19 +311,19 @@ function updateReportCardPreview(reportData) {
             const ass4 = a.ass4 !== undefined && a.ass4 !== null ? a.ass4 : null;
             const avg = item.subjectAverage !== undefined && item.subjectAverage !== null ? item.subjectAverage : null;
 
-            rows += `<tr>
-                <td style="padding:6px; border:1px solid #000; text-align:left; font-weight:600;">${name}</td>
-                <td style="padding:6px; border:1px solid #000; text-align:center;">${formatMark(ass1)}</td>
-                <td style="padding:6px; border:1px solid #000; text-align:center;">${ass1 !== null ? calculateGradeFromMarks(ass1, className) : '-'}</td>
-                <td style="padding:6px; border:1px solid #000; text-align:center;">${formatMark(ass2)}</td>
-                <td style="padding:6px; border:1px solid #000; text-align:center;">${ass2 !== null ? calculateGradeFromMarks(ass2, className) : '-'}</td>
-                <td style="padding:6px; border:1px solid #000; text-align:center;">${formatMark(ass3)}</td>
-                <td style="padding:6px; border:1px solid #000; text-align:center;">${ass3 !== null ? calculateGradeFromMarks(ass3, className) : '-'}</td>
-                <td style="padding:6px; border:1px solid #000; text-align:center;">${formatMark(ass4)}</td>
-                <td style="padding:6px; border:1px solid #000; text-align:center;">${ass4 !== null ? calculateGradeFromMarks(ass4, className) : '-'}</td>
-                <td style="padding:6px; border:1px solid #000; text-align:center; font-weight:700;">${formatMark(avg)}</td>
-                <td style="padding:6px; border:1px solid #000; text-align:center; font-weight:700;">${avg !== null ? calculateGradeFromMarks(avg, className) : '-'}</td>
-                <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+            rows += `<tr style="background:${idx % 2 === 1 ? '#f2f2f2' : 'transparent'};">
+                <td style="padding:4px; border:1px solid #000; text-align:left; font-weight:600;">${name}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${formatMark(ass1)}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${ass1 !== null ? calculateGradeFromMarks(ass1, className) : '-'}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${formatMark(ass2)}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${ass2 !== null ? calculateGradeFromMarks(ass2, className) : '-'}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${formatMark(ass3)}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${ass3 !== null ? calculateGradeFromMarks(ass3, className) : '-'}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${formatMark(ass4)}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${ass4 !== null ? calculateGradeFromMarks(ass4, className) : '-'}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center; font-weight:700;">${formatMark(avg)}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center; font-weight:700;">${avg !== null ? calculateGradeFromMarks(avg, className) : '-'}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
             </tr>`;
         });
 
@@ -344,117 +344,117 @@ function updateReportCardPreview(reportData) {
         const ptsDisplay = p => isJss ? (p || 0) : '-';
 
         const html = `
-        <div class="official-report-card" style="background:#fff; color:#000; padding:20px; font-family:Arial, sans-serif; font-size:13px; line-height:1.4;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px double #000; padding-bottom: 15px; margin-bottom: 20px;">
+        <div class="official-report-card report-card-container" style="background:#fff; color:#000; padding:12px; font-family:Arial, sans-serif; font-size:12px; line-height:1.35;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 10px;">
 
                 <!-- Left: School Badge Placeholder -->
                 <div style="flex: 1; text-align: left;">
-                    <img src="/images/logo.png" alt="School Badge" style="max-height: 90px; width: auto;">
+                    <img src="/images/logo.png" alt="School Badge" style="max-height: 60px; width: auto;">
                 </div>
 
                 <!-- Center: School Information -->
                 <div style="flex: 3; text-align: center;">
-                    <h1 style="margin: 0; font-size: 22px; font-weight: bold; text-transform: uppercase;">AIC LOKICHOGGIO GIRLS JUNIOR SCHOOL</h1>
-                    <p style="margin: 5px 0 0 0; font-size: 14px;">
+                    <h1 style="margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase;">AIC LOKICHOGGIO GIRLS JUNIOR SCHOOL</h1>
+                    <p style="margin: 3px 0 0 0; font-size: 13px;">
                         P.O BOX 11-30503, LOKICHOGGIO. &nbsp;|&nbsp;
                         <i class="fas fa-phone" style="font-size:16px; margin-right:5px;"></i> TEL: 0745994826 / 0708474334
                     </p>
-                    <p style="margin: 2px 0 0 0; font-size: 14px;">E-mail: aiclokichoggiogirls@gmail.com</p>
-                    <p style="margin: 5px 0 0 0; font-size: 15px; font-style: italic; font-weight: bold;">MOTTO: Strive for excellence</p>
+                    <p style="margin: 1px 0 0 0; font-size: 13px;">E-mail: aiclokichoggiogirls@gmail.com</p>
+                    <p style="margin: 3px 0 0 0; font-size: 15px; font-style: italic; font-weight: bold;">MOTTO: Strive for excellence</p>
                 </div>
 
                 <!-- Right: Graduation Cap Placeholder -->
                 <div style="flex: 1; text-align: right;">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="80" height="64" fill="#000"><path d="M622.34 153.62L343.09 67.88c-16.92-5.25-34.46-5.25-51.38 0L12.66 153.62C5.1 156.07 0 163.17 0 171.21c0 8.04 5.1 15.14 12.66 17.59L320 272.94l307.34-84.14c7.56-2.45 12.66-9.55 12.66-17.59 0-8.04-5.1-15.14-12.66-17.59zM64 224v118.78c0 42.11 89.59 76.22 224 76.22s224-34.11 224-76.22V224c0 42.11-89.59 76.22-224 76.22S64 266.11 64 224zM320 488c88.22 0 168-18.35 224-47.08V384c-56 28.73-135.78 47.08-224 47.08S96 412.73 64 384v56.92C120 469.65 231.78 488 320 488z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="60" height="48" fill="#000"><path d="M622.34 153.62L343.09 67.88c-16.92-5.25-34.46-5.25-51.38 0L12.66 153.62C5.1 156.07 0 163.17 0 171.21c0 8.04 5.1 15.14 12.66 17.59L320 272.94l307.34-84.14c7.56-2.45 12.66-9.55 12.66-17.59 0-8.04-5.1-15.14-12.66-17.59zM64 224v118.78c0 42.11 89.59 76.22 224 76.22s224-34.11 224-76.22V224c0 42.11-89.59 76.22-224 76.22S64 266.11 64 224zM320 488c88.22 0 168-18.35 224-47.08V384c-56 28.73-135.78 47.08-224 47.08S96 412.73 64 384v56.92C120 469.65 231.78 488 320 488z"/></svg>
                 </div>
 
             </div>
 
-            <div style="margin-bottom:15px;">
+            <div style="margin-bottom:10px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-weight:600;">
                     <span>LEARNER'S NAME: ${studentName}</span>
                     <span>GRADE: ${className}</span>
                 </div>
-                <p style="margin:8px 0; font-style:italic; font-size:12px;">Dear Parents/Guardians, This report form shows the ability and progress your child has made in different learning areas. The school welcomes you, should you desire to know more about your child's progress.</p>
+                <p style="margin:4px 0; font-style:italic; font-size:11px;">Dear Parents/Guardians, This report form shows the ability and progress your child has made in different learning areas. The school welcomes you, should you desire to know more about your child's progress.</p>
             </div>
 
-            <table style="width:100%; border-collapse:collapse; border:1px solid #000; margin-bottom:15px; font-size:12px;">
+            <table style="width:100%; border-collapse:collapse; border:1px solid #000; margin-bottom:10px; font-size:11px;">
                 <thead>
-                    <tr style="background:#e9ecef;">
-                        <th style="padding:6px; border:1px solid #000; text-align:left; width:18%;">LEARNING AREA</th>
-                        <th style="padding:6px; border:1px solid #000; text-align:center;">ASS1</th>
-                        <th style="padding:6px; border:1px solid #000; text-align:center;">LEVEL</th>
-                        <th style="padding:6px; border:1px solid #000; text-align:center;">ASS2</th>
-                        <th style="padding:6px; border:1px solid #000; text-align:center;">LEVEL</th>
-                        <th style="padding:6px; border:1px solid #000; text-align:center;">ASS3</th>
-                        <th style="padding:6px; border:1px solid #000; text-align:center;">LEVEL</th>
-                        <th style="padding:6px; border:1px solid #000; text-align:center;">ASS4</th>
-                        <th style="padding:6px; border:1px solid #000; text-align:center;">LEVEL</th>
-                        <th style="padding:6px; border:1px solid #000; text-align:center;">AVERAGE</th>
-                        <th style="padding:6px; border:1px solid #000; text-align:center;">LEVEL</th>
-                        <th style="padding:6px; border:1px solid #000; text-align:center;">TR. INITIAL</th>
+                    <tr style="background:#2c3e50; color:#fff;">
+                        <th style="padding:4px; border:1px solid #000; text-align:left; width:18%;">LEARNING AREA</th>
+                        <th style="padding:4px; border:1px solid #000; text-align:center;">ASS1</th>
+                        <th style="padding:4px; border:1px solid #000; text-align:center;">LEVEL</th>
+                        <th style="padding:4px; border:1px solid #000; text-align:center;">ASS2</th>
+                        <th style="padding:4px; border:1px solid #000; text-align:center;">LEVEL</th>
+                        <th style="padding:4px; border:1px solid #000; text-align:center;">ASS3</th>
+                        <th style="padding:4px; border:1px solid #000; text-align:center;">LEVEL</th>
+                        <th style="padding:4px; border:1px solid #000; text-align:center;">ASS4</th>
+                        <th style="padding:4px; border:1px solid #000; text-align:center;">LEVEL</th>
+                        <th style="padding:4px; border:1px solid #000; text-align:center;">AVERAGE</th>
+                        <th style="padding:4px; border:1px solid #000; text-align:center;">LEVEL</th>
+                        <th style="padding:4px; border:1px solid #000; text-align:center;">TR. INITIAL</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${rows}
                     <tr style="font-weight:700; background:#f1f1f1;">
-                        <td style="padding:6px; border:1px solid #000; text-align:left;">TOTAL MARKS/ MEAN GRADE</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${display(totalAss1)}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${display(totalAss2)}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${display(totalAss3)}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${display(totalAss4)}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${display(count ? (totalAvg / count).toFixed(2) : '-')}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${overallGrade}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:left;">TOTAL MARKS/ MEAN GRADE</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${display(totalAss1)}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${display(totalAss2)}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${display(totalAss3)}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${display(totalAss4)}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${display(count ? (totalAvg / count).toFixed(2) : '-')}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${overallGrade}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
                     </tr>
                     <tr style="font-weight:700;">
-                        <td style="padding:6px; border:1px solid #000; text-align:left;">TOTAL POINTS OUT OF 8</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss1)}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss2)}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss3)}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss4)}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${ptsDisplay(totalPts)}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:left;">TOTAL POINTS OUT OF 8</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss1)}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss2)}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss3)}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${ptsDisplay(ptsAss4)}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${ptsDisplay(totalPts)}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
                     </tr>
                     <tr style="font-weight:700;">
-                        <td style="padding:6px; border:1px solid #000; text-align:left;">CLASS POSITION</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">-</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">-</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">-</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">-</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;">${classPosition !== null && classSize !== null ? `${classPosition} / ${classSize}` : '-'}</td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:6px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:left;">CLASS POSITION</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">-</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">-</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">-</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">-</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${classPosition !== null && classSize !== null ? `${classPosition} / ${classSize}` : '-'}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
                     </tr>
                 </tbody>
             </table>
 
-            <div style="margin-bottom:12px; font-weight:700;">Class teacher's Remarks: <span style="font-weight:400;">${teacherRemark}</span></div>
+            <div style="margin-bottom:12px; font-weight:700;">Class teacher's Remarks: <span style="color:red; font-weight:400;">${teacherRemark}</span></div>
 
             <div style="margin-bottom:12px; font-size:11px; font-weight:700;">
                 OVERALL GRADING SCALE: 01-112 (BE2), 113-225 (BE-1), 226-337 (AE-2), 338-450 (AE-1), 451-562(ME-2), 563-675(ME-1), 676-787(EE-2), 788-900(EE-1) and [----] MISSED ASSESSMENT.
             </div>
 
-            <pre style="margin:0 0 12px; font-size:11px; line-height:1.4; font-family:monospace; white-space:pre; border:none; background:transparent;">KJSEA GRADING SCALE PER LEARNING AREA (%)
+            <pre style="margin:0 0 8px; font-size:10px; line-height:1.2; font-family:monospace; white-space:pre; border:none; background:transparent;">KJSEA GRADING SCALE PER LEARNING AREA (%)
 01-10(1 P) --- [0.5]- BE (2)              11-20(2 P)--- [1.0]-BE (1) -BELOW EXPECTATION
 21- 30 (3 P)--- [1.5]-AE (2)              31-40(4 P)--- [2.0]-AE (1)-APPROACHING EXPECTATION
 41-57(5 P)--- [2.5]-ME (2)               58-74(6 P)--- [3.0]-ME (1)--MEETING EXPECTATION
 75-89(7 P)--- [3.5]-EE (2)                 90-100 (8 P)--- [4.0]-EE (1) - EXCEEDING EXPECTATION</pre>
 
-            <div style="margin-top:20px; font-size:12px;">
+            <div style="margin-top:10px; font-size:11px;">
                 <table style="width:100%; border-collapse:collapse;">
                     <tr>
                         <td style="padding:4px 0;">Opening date: ..........................</td>
