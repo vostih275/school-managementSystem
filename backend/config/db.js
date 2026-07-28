@@ -12,14 +12,27 @@ const connectDB = async () => {
     const displayUri = mongoUri.replace(/\/\/([^:/@]+):([^@]+)@/, '//<user>:<pass>@');
     console.log('Connecting to MongoDB using URI:', displayUri);
 
-    const conn = await mongoose.connect(mongoUri, {
+    const options = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      dbName: 'school',
-    });
+    };
+    if (process.env.DB_NAME) {
+      options.dbName = process.env.DB_NAME;
+    }
+
+    const conn = await mongoose.connect(mongoUri, options);
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📦 MongoDB Database: ${conn.connection.name}`);
+
+    // List all databases on the cluster to help locate the correct one
+    try {
+      const admin = conn.connection.db.admin();
+      const { databases } = await admin.listDatabases();
+      console.log('Available databases on this cluster:', databases.map(d => d.name));
+    } catch (listErr) {
+      console.log('Could not list databases:', listErr.message);
+    }
 
     // Sync User indexes to apply the partial unique email index and sparse unique admission number index
     try {
