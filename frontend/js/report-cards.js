@@ -494,9 +494,34 @@ function buildReportCardHtml(reportData) {
 
 function updateReportCardPreview(reportData) {
     try {
+        const payload = reportData.data || reportData;
         const previewContainer = document.getElementById('report-card-preview');
+        const html = buildReportCardHtml(reportData);
         if (previewContainer) {
-            previewContainer.innerHTML = buildReportCardHtml(reportData);
+            previewContainer.innerHTML = html;
+        }
+
+        // Update summary panel values alongside the rendered report card
+        const subjects = Array.isArray(payload.subjects) ? payload.subjects : [];
+        const termAverage = payload.termAverage !== undefined && payload.termAverage !== null ? payload.termAverage : 0;
+        const totalMarks = termAverage * subjects.length;
+        const className = payload.student?.class || '';
+        const classPosition = payload.classPosition !== undefined ? payload.classPosition : null;
+        const classSize = payload.classSize !== undefined ? payload.classSize : null;
+
+        const classPositionEl = document.getElementById('class-position');
+        if (classPositionEl) {
+            classPositionEl.textContent = (classPosition !== null && classSize !== null) ? `${classPosition} / ${classSize}` : '-';
+        }
+
+        const overallGradeEl = document.getElementById('overall-grade');
+        if (overallGradeEl) {
+            overallGradeEl.textContent = termAverage ? calculateGradeFromMarks(termAverage, className) : '-';
+        }
+
+        const teacherRemarksEl = document.getElementById('teacher-remarks-preview');
+        if (teacherRemarksEl) {
+            teacherRemarksEl.textContent = getTeacherRemark(totalMarks);
         }
 
         // Show the preview section and action buttons
