@@ -381,15 +381,26 @@ exports.buildTermReportData = buildTermReportData = async (studentId, term, acad
         // Calculate class position (8-tier / JSS only)
         let classPosition = null;
         let classSize = 0;
+        let totalStudents = null;
         if (studentClass) {
+            const classStudents = await User.find({
+                role: 'student',
+                $or: [
+                    { class: studentClass },
+                    { 'profile.class': studentClass }
+                ]
+            }).select('_id').lean();
+            const classStudentIds = new Set(classStudents.map(s => s._id.toString()));
+
             const allStudentAssessments = await CBCAssessment.find({
                 term: parseInt(term, 10),
                 academicYear
-            }).lean();
+            }).populate('student', 'class').lean();
 
             const studentTotals = new Map();
             for (const a of allStudentAssessments) {
-                const sId = String(a.student);
+                const sId = a.student?._id ? a.student._id.toString() : String(a.student);
+                if (!classStudentIds.has(sId)) continue;
                 if (!studentTotals.has(sId)) studentTotals.set(sId, []);
                 studentTotals.get(sId).push(a);
             }
@@ -405,6 +416,7 @@ exports.buildTermReportData = buildTermReportData = async (studentId, term, acad
 
             studentRankings.sort((a, b) => b.totalMarks - a.totalMarks);
             classSize = studentRankings.length;
+            totalStudents = classSize;
             const myIndex = studentRankings.findIndex(r => r.studentId === String(studentId));
             if (myIndex !== -1) classPosition = myIndex + 1;
         }
@@ -415,7 +427,8 @@ exports.buildTermReportData = buildTermReportData = async (studentId, term, acad
             totalPoints,
             overallGrade: overallGrade ? { ...overallGrade, formatted: formatOverallGrade(overallGrade) } : null,
             classPosition,
-            classSize
+            classSize,
+            totalStudents
         };
     }
 
@@ -518,8 +531,22 @@ const buildTermReportDataFromGrades = async (studentId, term, academicYear) => {
 
         let classPosition = null;
         let classSize = 0;
+        let totalStudents = null;
         if (studentClass) {
-            const classGrades = await Grade.find({ class: studentClass, term: termString, year }).lean();
+            const classStudents = await User.find({
+                role: 'student',
+                $or: [
+                    { class: studentClass },
+                    { 'profile.class': studentClass }
+                ]
+            }).select('_id').lean();
+            const classStudentIds = classStudents.map(s => s._id.toString());
+
+            const classGrades = await Grade.find({
+                student: { $in: classStudentIds },
+                term: termString,
+                year
+            }).lean();
             const studentTotals = new Map();
             for (const cg of classGrades) {
                 const sid = String(cg.student);
@@ -540,6 +567,7 @@ const buildTermReportDataFromGrades = async (studentId, term, academicYear) => {
             }
             studentRankings.sort((a, b) => b.totalMarks - a.totalMarks);
             classSize = studentRankings.length;
+            totalStudents = classSize;
             const myIndex = studentRankings.findIndex(r => r.studentId === String(studentId));
             if (myIndex !== -1) classPosition = myIndex + 1;
         }
@@ -550,7 +578,8 @@ const buildTermReportDataFromGrades = async (studentId, term, academicYear) => {
             totalPoints,
             overallGrade: overallGrade ? { ...overallGrade, formatted: formatOverallGrade(overallGrade) } : null,
             classPosition,
-            classSize
+            classSize,
+            totalStudents
         };
     }
 

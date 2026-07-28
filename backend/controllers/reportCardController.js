@@ -406,17 +406,33 @@ const generateComprehensiveReport = async (req, res) => {
             });
         }
 
+        // Identify every student in the same class from User records (more reliable than Grade.class)
+        const classStudents = await User.find({
+            role: 'student',
+            $or: [
+                { class: studentClass },
+                { 'profile.class': studentClass }
+            ]
+        }).select('_id name').lean();
+
+        const classStudentMap = new Map();
+        for (const s of classStudents) {
+            classStudentMap.set(s._id.toString(), s.name || 'Unknown Student');
+        }
+
+        const classStudentIds = Array.from(classStudentMap.keys());
+
         // All grades in the same class, term and year
         const classGrades = await Grade.find({
-            class: studentClass,
+            student: { $in: classStudentIds },
             term,
             year: recordYear
-        }).populate('student', 'name').lean();
+        }).lean();
 
-        // Compute each class student's term average
+        // Compute each class student's term total
         const studentTermMap = {};
         for (const g of classGrades) {
-            const sid = g.student._id.toString();
+            const sid = String(g.student);
             const subjectAverage = average([
                 g.assessments?.ass1,
                 g.assessments?.ass2,
@@ -425,7 +441,7 @@ const generateComprehensiveReport = async (req, res) => {
             ]);
 
             if (!studentTermMap[sid]) {
-                studentTermMap[sid] = { name: g.student?.name || g.studentName, averages: [] };
+                studentTermMap[sid] = { name: classStudentMap.get(sid) || g.studentName || 'Unknown Student', averages: [] };
             }
             studentTermMap[sid].averages.push(subjectAverage);
         }
@@ -438,12 +454,13 @@ const generateComprehensiveReport = async (req, res) => {
                 totalMarks,
                 termAverage: data.averages.length ? totalMarks / data.averages.length : 0
             };
-        });
+        }).sort((a, b) => b.totalMarks - a.totalMarks);
 
         const studentRecord = classAverages.find(s => s.studentId === studentId);
         const termAverage = studentRecord ? studentRecord.termAverage : 0;
-        const classPosition = rank(studentRecord ? studentRecord.totalMarks : 0, classAverages.map(s => s.totalMarks));
+        const classPosition = studentRecord ? rank(studentRecord.totalMarks, classAverages.map(s => s.totalMarks)) : null;
         const classSize = classAverages.length;
+        const totalStudents = classSize;
 
         // Build per-subject report data
         const subjects = studentGrades.map(g => {
