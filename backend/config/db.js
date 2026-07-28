@@ -13,27 +13,52 @@ const connectDB = async () => {
     console.log('Connecting to MongoDB using URI:', displayUri);
     console.log('DB_NAME env var:', process.env.DB_NAME || '<not set>');
 
-    const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    };
-    if (process.env.DB_NAME) {
-      options.dbName = process.env.DB_NAME;
+    const preferredDb = process.env.DB_NAME ? process.env.DB_NAME.trim() : '';
+    const candidateDbs = preferredDb ? [preferredDb] : ['school', 'School0', 'SW'];
+    let selectedConn = null;
+    let lastError = null;
+
+    for (const dbName of candidateDbs) {
+      try {
+        if (selectedConn) {
+          await mongoose.disconnect();
+          console.log(`Disconnected from previous database, trying ${dbName}`);
+        }
+
+        const options = {
+          useNewUrlParser: true,
+          useUnifiedTopology: true,
+          dbName: dbName,
+        };
+
+        console.log(`Trying MongoDB database: ${dbName}`);
+        selectedConn = await mongoose.connect(mongoUri, options);
+
+        const User = require('../models/User');
+        const userCount = await User.countDocuments();
+        console.log(`Database '${dbName}' has ${userCount} user documents.`);
+
+        if (userCount > 0 || dbName === candidateDbs[candidateDbs.length - 1]) {
+          console.log(`✅ Selected MongoDB database: ${dbName} (${userCount} users)`);
+          break;
+        }
+
+        console.log(`No users in '${dbName}', trying next candidate...`);
+      } catch (err) {
+        console.error(`Failed to use database '${dbName}':`, err.message);
+        lastError = err;
+      }
     }
 
-    const conn = await mongoose.connect(mongoUri, options);
+    if (!selectedConn) {
+      console.error('❌ Could not connect to any candidate database.');
+      if (lastError) throw lastError;
+      process.exit(1);
+    }
 
+    const conn = selectedConn;
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📦 MongoDB Database: ${conn.connection.name}`);
-
-    // Show how many user documents exist in the connected database
-    try {
-      const User = require('../models/User');
-      const userCount = await User.countDocuments();
-      console.log('User documents in connected database:', userCount);
-    } catch (countErr) {
-      console.log('Could not count users:', countErr.message);
-    }
 
     // List all databases on the cluster to help locate the correct one
     try {
