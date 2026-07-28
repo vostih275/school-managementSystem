@@ -19,10 +19,11 @@ exports.getStudentsByClass = async (req, res) => {
             });
         }
 
-        console.log(`Fetching students for class: ${className}`);
-        
-        const escaped = className.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const classRegex = new RegExp(`^${escaped}$`, 'i');
+        const cleanClassName = (className || '').trim();
+        console.log(`Fetching students for class: "${cleanClassName}" (raw: "${className}")`);
+
+        const escaped = cleanClassName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const classRegex = new RegExp(`^\\s*${escaped}\\s*$`, 'i');
         const query = {
             role: 'student',
             $or: [
@@ -32,7 +33,7 @@ exports.getStudentsByClass = async (req, res) => {
             ]
         };
 
-        console.log('MongoDB query:', JSON.stringify(query, null, 2));
+        console.log('MongoDB query:', JSON.stringify(query, (k, v) => v instanceof RegExp ? v.toString() : v, 2));
         console.log('Class regex used:', classRegex.source, 'flags:', classRegex.flags);
 
         const students = await User.find(query)
@@ -40,8 +41,8 @@ exports.getStudentsByClass = async (req, res) => {
             .lean()
             .exec();
 
-        console.log(`Found ${students.length} students for class ${className}`);
-        console.log('Student list for class:', className, students.map(s => ({
+        console.log(`Found ${students.length} students for class "${cleanClassName}"`);
+        console.log('Student list for class:', cleanClassName, students.slice(0, 10).map(s => ({
             id: s._id,
             name: s.name,
             admissionNumber: s.admissionNumber,
@@ -51,9 +52,13 @@ exports.getStudentsByClass = async (req, res) => {
         })));
 
         if (students.length === 0) {
-            console.warn(`No students returned for class "${className}". Check stored class values.`, {
-                requestedClass: className,
-                regex: classRegex.source
+            const distinctClasses = await User.distinct('class', { role: 'student' });
+            const distinctProfileClasses = await User.distinct('profile.class', { role: 'student' });
+            console.warn(`No students returned for class "${cleanClassName}". Stored class values:`, {
+                requestedClass: cleanClassName,
+                regex: classRegex.source,
+                distinctRootClasses: distinctClasses,
+                distinctProfileClasses: distinctProfileClasses
             });
         }
 
