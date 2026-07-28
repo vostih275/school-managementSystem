@@ -4,7 +4,9 @@
   "description": "A comprehensive school management system built with Node.js, Express, and MongoDB.",
   "main": "check-fees.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "cd backend && npm install",
+    "start": "cd backend && node server.js"
   },
   "repository": {
     "type": "git",
