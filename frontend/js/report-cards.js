@@ -160,8 +160,19 @@ async function loadStudentsForReportCard(className) {
         
         const data = await response.json();
         const students = Array.isArray(data) ? data : (data.data || data.students || []);
-        
-        console.log(`Fetched ${students.length} students for class ${className}`, students);
+
+        console.log('loadStudentsForReportCard debug:', {
+            className,
+            requestUrl: `${apiBase}/students/class/${encodeURIComponent(className)}`,
+            count: students.length,
+            students: students.map(s => ({
+                id: s._id || s.id,
+                name: s.name,
+                admissionNumber: s.admissionNumber,
+                class: s.class,
+                profileClass: s?.profile?.class
+            }))
+        });
         
         // Update student dropdown
         reportStudentSelect.innerHTML = '<option value="">-- Select a student --</option>';
@@ -184,7 +195,9 @@ async function loadStudentsForReportCard(className) {
             option.textContent = adm ? `${name} (${adm})` : name;
             reportStudentSelect.appendChild(option);
         });
-        
+
+        console.log('Student dropdown options:', Array.from(reportStudentSelect.options).map(o => o.textContent));
+
         // Enable the student dropdown
         reportStudentSelect.disabled = false;
         console.log(`Successfully loaded ${students.length} students for class ${className}`);
@@ -297,6 +310,19 @@ function buildReportCardHtml(reportData) {
         const classPosition = payload.classPosition !== undefined && payload.classPosition !== null ? Number(payload.classPosition) : null;
         const classSize = payload.classSize !== undefined && payload.classSize !== null ? Number(payload.classSize) : null;
         const totalStudents = payload.totalStudents !== undefined && payload.totalStudents !== null ? Number(payload.totalStudents) : classSize;
+
+        console.log('buildReportCardHtml payload debug:', {
+            studentName,
+            className,
+            admissionNumber,
+            term,
+            termAverage,
+            totalMarks,
+            classPosition,
+            totalStudents,
+            subjectsCount: subjects.length
+        });
+
         const classTeacherName = (() => {
             const grade = String(className).match(/\d+/);
             switch (grade ? grade[0] : '') {
@@ -368,6 +394,20 @@ function buildReportCardHtml(reportData) {
                 totalPts += isJss ? (Number(item.points) || Number(calculatePointsFromMarks(avg, className)) || 0) : 0;
                 count++;
             }
+        });
+
+        console.log('buildReportCardHtml totals debug:', {
+            totalAss1,
+            totalAss2,
+            totalAss3,
+            totalAss4,
+            totalAvg,
+            totalPts,
+            ptsAss1,
+            ptsAss2,
+            ptsAss3,
+            ptsAss4,
+            count
         });
 
         const display = v => (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) ? '-' : v;
@@ -542,6 +582,18 @@ function updateReportCardPreview(reportData) {
         const classPosition = payload.classPosition !== undefined && payload.classPosition !== null ? Number(payload.classPosition) : null;
         const classSize = payload.classSize !== undefined && payload.classSize !== null ? Number(payload.classSize) : null;
         const totalStudents = payload.totalStudents !== undefined && payload.totalStudents !== null ? Number(payload.totalStudents) : classSize;
+
+        console.log('updateReportCardPreview debug:', {
+            studentName,
+            className,
+            admissionNumber,
+            term,
+            year,
+            termAverage,
+            totalMarks,
+            classPosition,
+            totalStudents
+        });
 
         const studentNameEl = document.getElementById('student-name');
         if (studentNameEl) studentNameEl.textContent = studentName;

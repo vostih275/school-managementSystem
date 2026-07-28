@@ -462,6 +462,19 @@ const generateComprehensiveReport = async (req, res) => {
         const classSize = classAverages.length;
         const totalStudents = classSize;
 
+        console.log('Class ranking debug:', {
+            requestedStudentId: studentId,
+            studentClass,
+            classStudentsFound: classStudents.length,
+            classStudentsNames: Array.from(classStudentMap.entries()).map(([id, name]) => ({ id, name })),
+            classGradesFound: classGrades.length,
+            classAverages: classAverages.map(s => ({ studentId: s.studentId, name: s.name, totalMarks: s.totalMarks, termAverage: s.termAverage })),
+            studentRecord,
+            classPosition,
+            classSize,
+            totalStudents
+        });
+
         // Build per-subject report data
         const subjects = studentGrades.map(g => {
             const assessments = g.assessments || {};

@@ -33,22 +33,28 @@ exports.getStudentsByClass = async (req, res) => {
         };
 
         console.log('MongoDB query:', JSON.stringify(query, null, 2));
+        console.log('Class regex used:', classRegex.source, 'flags:', classRegex.flags);
 
         const students = await User.find(query)
             .select('name email admissionNumber profile.class class classAssigned')
             .lean()
             .exec();
-            
+
         console.log(`Found ${students.length} students for class ${className}`);
-        
-        // Log the first few students for debugging
-        if (students.length > 0) {
-            console.log('Sample students:', students.slice(0, 3).map(s => ({
-                id: s._id,
-                name: s.name,
-                class: s.class,
-                profileClass: s.profile?.class
-            })));
+        console.log('Student list for class:', className, students.map(s => ({
+            id: s._id,
+            name: s.name,
+            admissionNumber: s.admissionNumber,
+            class: s.class,
+            profileClass: s.profile?.class,
+            classAssigned: s.classAssigned
+        })));
+
+        if (students.length === 0) {
+            console.warn(`No students returned for class "${className}". Check stored class values.`, {
+                requestedClass: className,
+                regex: classRegex.source
+            });
         }
 
         res.json({

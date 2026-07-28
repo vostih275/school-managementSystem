@@ -431,6 +431,18 @@ exports.buildTermReportData = buildTermReportData = async (studentId, term, acad
             classSize,
             totalStudents
         };
+
+        console.log('CBC buildTermReportData 8-tier debug:', {
+            studentId: String(student._id),
+            studentClass,
+            classStudentsFound: classStudents.length,
+            studentRankings,
+            classPosition,
+            classSize,
+            totalStudents,
+            totalMarks,
+            totalPoints
+        });
     }
 
     return {
@@ -583,6 +595,19 @@ const buildTermReportDataFromGrades = async (studentId, term, academicYear) => {
             classSize,
             totalStudents
         };
+
+        console.log('CBC buildTermReportDataFromGrades 8-tier debug:', {
+            studentId: String(student._id),
+            studentClass,
+            classStudentsFound: classStudents.length,
+            classGradesFound: classGrades.length,
+            studentRankings,
+            classPosition,
+            classSize,
+            totalStudents,
+            totalMarks,
+            totalPoints
+        });
     }
 
     return {
