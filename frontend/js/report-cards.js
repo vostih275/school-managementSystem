@@ -290,6 +290,7 @@ function buildReportCardHtml(reportData) {
         const overallGrade = termAverage ? calculateGradeFromMarks(termAverage, className) : '-';
         const classPosition = payload.classPosition !== undefined ? payload.classPosition : null;
         const classSize = payload.classSize !== undefined ? payload.classSize : null;
+        const totalStudents = payload.totalStudents !== undefined ? payload.totalStudents : classSize;
         const classTeacherName = (() => {
             const grade = String(className).match(/\d+/);
             switch (grade ? grade[0] : '') {
@@ -332,7 +333,7 @@ function buildReportCardHtml(reportData) {
                 <td style="padding:4px; border:1px solid #000; text-align:center;">${ass4 !== null ? calculateGradeFromMarks(ass4, className) : '-'}</td>
                 <td style="padding:4px; border:1px solid #000; text-align:center; font-weight:700;">${formatMark(avg)}</td>
                 <td style="padding:4px; border:1px solid #000; text-align:center; font-weight:700;">${avg !== null ? calculateGradeFromMarks(avg, className) : '-'}</td>
-                <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${item.teacherInitials || item.teacherInitial || ''}</td>
             </tr>`;
         });
 
@@ -444,7 +445,7 @@ function buildReportCardHtml(reportData) {
                         <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
                         <td style="padding:4px; border:1px solid #000; text-align:center;">-</td>
                         <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:4px; border:1px solid #000; text-align:center;">${classPosition !== null && classSize !== null ? `${classPosition} / ${classSize}` : '-'}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${classPosition !== null && totalStudents !== null ? `${classPosition} (out of ${totalStudents})` : '-'}</td>
                         <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
                         <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
                     </tr>
@@ -508,10 +509,11 @@ function updateReportCardPreview(reportData) {
         const className = payload.student?.class || '';
         const classPosition = payload.classPosition !== undefined ? payload.classPosition : null;
         const classSize = payload.classSize !== undefined ? payload.classSize : null;
+        const totalStudents = payload.totalStudents !== undefined ? payload.totalStudents : classSize;
 
         const classPositionEl = document.getElementById('class-position');
         if (classPositionEl) {
-            classPositionEl.textContent = (classPosition !== null && classSize !== null) ? `${classPosition} / ${classSize}` : '-';
+            classPositionEl.textContent = (classPosition !== null && totalStudents !== null) ? `${classPosition} (out of ${totalStudents})` : '-';
         }
 
         const overallGradeEl = document.getElementById('overall-grade');

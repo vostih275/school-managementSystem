@@ -9,6 +9,15 @@ const { v4: uuidv4 } = require('uuid');
 const puppeteer = null;
 const User = require('../models/User');
 
+// Helper: derive initials from a full name (e.g., "Mary Akiru" -> "M.A.")
+const deriveInitials = (name) => {
+    if (!name || typeof name !== 'string') return '';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    const initials = parts.map(p => p[0].toUpperCase()).join('.');
+    return parts.length > 1 ? initials + '.' : initials;
+};
+
 // Helper function to generate PDF from HTML
 const generatePdfFromHtml = async (html, outputPath) => {
     console.log(`Attempting to generate PDF at: ${outputPath}`);
@@ -62,8 +71,10 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
     // Track all subjects being saved
     const subjectsData = [];
     
+    const fallbackInitials = deriveInitials(req.user?.name || '');
+
     for (const item of subjects) {
-        const { subject, marks, grade } = item;
+        const { subject, marks, grade, teacherInitials } = item;
         
         if (!subject || marks === undefined) {
             continue; // Skip invalid entries
@@ -87,6 +98,7 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
                     assessments,
                     year: recordYear,
                     teacher: req.user.id,
+                    teacherInitials: teacherInitials || fallbackInitials,
                     comments: remarks || '',
                     updatedAt: new Date()
                 },
@@ -239,8 +251,9 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
 // @route   POST /api/v1/marks
 // @access  Private/Teacher
 exports.saveMarks = asyncHandler(async (req, res, next) => {
-    const { student, studentName, class: className, subject, term, year, assessments, comments } = req.body;
+    const { student, studentName, class: className, subject, term, year, assessments, comments, teacherInitials } = req.body;
     const recordYear = Number(year) || new Date().getFullYear();
+    const fallbackInitials = deriveInitials(req.user?.name || '');
 
     // Check if marks already exist for this student, subject, term, and year
     const existingGrade = await Grade.findOne({
@@ -258,6 +271,7 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
         // Update existing grade
         existingGrade.assessments = assessmentData;
         existingGrade.comments = comments || existingGrade.comments;
+        existingGrade.teacherInitials = teacherInitials || existingGrade.teacherInitials || fallbackInitials;
         existingGrade.year = recordYear;
         grade = await existingGrade.save();
     } else {
@@ -270,6 +284,7 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
             term,
             year: recordYear,
             teacher: req.user.id,
+            teacherInitials: teacherInitials || fallbackInitials,
             assessments: assessmentData,
             comments: comments || ''
         });

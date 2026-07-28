@@ -65,6 +65,13 @@ const GradeSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    teacherInitials: {
+        type: String,
+        trim: true,
+        uppercase: true,
+        maxLength: 10,
+        default: ''
+    },
     comments: {
         type: String,
         default: ''

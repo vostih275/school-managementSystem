@@ -36,6 +36,15 @@ const ensureDirectoryExists = async (dir) => {
     }
 };
 
+// Helper: derive initials from a full name (e.g., "Mary Akiru" -> "M.A.")
+const deriveInitials = (name) => {
+    if (!name || typeof name !== 'string') return '';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    const initials = parts.map(p => p[0].toUpperCase()).join('.');
+    return parts.length > 1 ? initials + '.' : initials;
+};
+
 // Helper function to generate PDF from HTML
 const generatePdfFromHtml = async (html, outputPath) => {
     console.log(`Attempting to generate PDF at: ${outputPath}`);
@@ -380,7 +389,7 @@ const generateComprehensiveReport = async (req, res) => {
             student: studentId,
             term,
             year: recordYear
-        }).lean();
+        }).populate('teacher', 'name').lean();
 
         if (studentGrades.length === 0) {
             return res.status(404).json({
@@ -475,6 +484,7 @@ const generateComprehensiveReport = async (req, res) => {
                 subjectAverage: parseFloat(subjectAverage.toFixed(2)),
                 grade: g.grade || '',
                 points: g.points ?? null,
+                teacherInitials: g.teacherInitials || deriveInitials(g.teacher?.name) || '',
                 improvement: getImprovement(assessments),
                 subjectPosition,
                 totalStudents: subjectClassValues.length
@@ -501,6 +511,7 @@ const generateComprehensiveReport = async (req, res) => {
                 year: recordYear,
                 termAverage: parseFloat(termAverage.toFixed(2)),
                 classSize,
+                totalStudents: classSize,
                 classPosition,
                 subjects
             }
