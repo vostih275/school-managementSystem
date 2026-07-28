@@ -5,7 +5,7 @@ const API_CONFIG = (() => {
     // Check if we're running in development or production
     const isProduction = window.location.hostname !== 'localhost' && !window.location.hostname.startsWith('127.');
 
-    const PRODUCTION_BASE = 'https://aic-school-system-c0j6.onrender.com';
+    const PRODUCTION_BASE = window.location.origin;
     const DEV_BASE = 'http://localhost:5000';
 
     console.log('[CONFIG] Environment:', { isProduction, hostname: window.location.hostname });
