@@ -3416,6 +3416,9 @@
                 <button id="generate-report-card" class="btn btn-primary">
                   <i class="fas fa-eye"></i> Generate Report Card
                 </button>
+                <button id="generate-all-reports" class="btn btn-success" style="margin-left: 10px;">
+                  <i class="fas fa-file-alt"></i> 📄 Generate All Class Reports
+                </button>
                 <button id="view-class-analytics" class="btn btn-info" style="margin-left: 10px;">
                   <i class="fas fa-chart-bar"></i> Class Analytics
                 </button>
@@ -3483,6 +3486,9 @@
               </div>
             </div>
           </div>
+
+          <!-- Bulk Report Cards Container -->
+          <div id="bulk-report-cards" class="bulk-report-container" style="display: none;"></div>
           
           <div style="margin-top: 20px; text-align: center;">
             <button id="print-report-card" class="btn btn-primary" style="display: none; margin-right: 10px;" onclick="window.print()">
@@ -3604,6 +3610,22 @@
                 width: 100%;
                 padding: 0;
                 box-sizing: border-box;
+              }
+              #bulk-report-cards,
+              #bulk-report-cards * {
+                visibility: visible;
+              }
+              #bulk-report-cards {
+                position: static;
+                width: 100%;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              .bulk-report-card {
+                page-break-after: always;
+              }
+              .bulk-report-card:last-child {
+                page-break-after: auto;
               }
               .official-report-card {
                 box-shadow: none !important;

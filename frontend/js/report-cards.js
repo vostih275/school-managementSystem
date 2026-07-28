@@ -266,7 +266,7 @@ function getTeacherRemark(totalMarks) {
 }
 
 // Official KJSEA report card builder (4 assessments)
-function updateReportCardPreview(reportData) {
+function buildReportCardHtml(reportData) {
     console.log('=== updateReportCardPreview called ===');
 
     try {
@@ -485,14 +485,26 @@ function updateReportCardPreview(reportData) {
             </div>
         </div>`;
 
+        return html;
+    } catch (error) {
+        console.error('Error building report card HTML:', error);
+        throw error;
+    }
+}
+
+function updateReportCardPreview(reportData) {
+    try {
         const previewContainer = document.getElementById('report-card-preview');
         if (previewContainer) {
-            previewContainer.innerHTML = html;
+            previewContainer.innerHTML = buildReportCardHtml(reportData);
         }
 
         // Show the preview section and action buttons
         const previewSection = document.querySelector('.preview-section');
         if (previewSection) previewSection.style.display = 'block';
+
+        const bulkContainer = document.getElementById('bulk-report-cards');
+        if (bulkContainer) bulkContainer.style.display = 'none';
 
         const deleteMarksBtn = document.getElementById('delete-marks');
         if (deleteMarksBtn) deleteMarksBtn.style.display = 'inline-block';
@@ -506,6 +518,90 @@ function updateReportCardPreview(reportData) {
     } catch (error) {
         console.error('Error updating report card preview:', error);
         showAlert('Failed to update report card preview. Please try again.', 'error');
+    }
+}
+
+async function generateAllClassReports() {
+    const classSelect = document.getElementById('report-class');
+    const termSelect = document.getElementById('report-term');
+    const generateAllBtn = document.getElementById('generate-all-reports');
+    if (!classSelect || !termSelect) {
+        showAlert('Please select a class and term', 'error');
+        return;
+    }
+    const className = classSelect.value.trim();
+    const term = termSelect.value.trim();
+    if (!className || !term) {
+        showAlert('Please select a class and term', 'error');
+        return;
+    }
+    const year = new Date().getFullYear();
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showAlert('You are not authenticated. Please log in again.', 'error');
+        return;
+    }
+    let students = [];
+    try {
+        students = await loadStudentsForReportCard(className);
+    } catch (error) {
+        console.error('Error loading class students:', error);
+    }
+    if (!students || students.length === 0) {
+        showAlert('No students found in the selected class.', 'warning');
+        return;
+    }
+    if (generateAllBtn) {
+        generateAllBtn.disabled = true;
+        generateAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating all...';
+    }
+    const bulkContainer = document.getElementById('bulk-report-cards');
+    const previewSection = document.querySelector('.preview-section');
+    if (previewSection) previewSection.style.display = 'none';
+    let html = '';
+    let generatedCount = 0;
+    for (let i = 0; i < students.length; i++) {
+        const student = students[i];
+        const studentId = student._id || student.id;
+        try {
+            const response = await fetch(`${apiBase}/reports/generate/${encodeURIComponent(studentId)}/${encodeURIComponent(term)}/${year}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                console.warn(`Skipping ${student.name || studentId}: report fetch failed (${response.status})`);
+                continue;
+            }
+            const reportData = await response.json();
+            const cardHtml = buildReportCardHtml(reportData);
+            const isLast = i === students.length - 1;
+            html += `<div class="bulk-report-card" style="page-break-after: ${isLast ? 'auto' : 'always'};">${cardHtml}</div>`;
+            generatedCount++;
+        } catch (error) {
+            console.error(`Error generating report for ${student.name || studentId}:`, error);
+        }
+    }
+    if (bulkContainer) {
+        bulkContainer.innerHTML = html;
+        bulkContainer.style.display = 'block';
+    }
+    const previewContainer = document.getElementById('report-card-preview');
+    if (previewContainer) previewContainer.innerHTML = '';
+    const printReportBtn = document.getElementById('print-report-card');
+    if (printReportBtn) printReportBtn.style.display = 'inline-block';
+    const deleteMarksBtn = document.getElementById('delete-marks');
+    if (deleteMarksBtn) deleteMarksBtn.style.display = 'none';
+    const sendBtn = document.getElementById('send-to-student');
+    if (sendBtn) sendBtn.style.display = 'none';
+    if (generateAllBtn) {
+        generateAllBtn.disabled = false;
+        generateAllBtn.innerHTML = '<i class="fas fa-file-alt"></i> 📄 Generate All Class Reports';
+    }
+    if (generatedCount === 0) {
+        showAlert('No report cards could be generated.', 'warning');
     }
 }
 
@@ -1277,6 +1373,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     } else {
         console.error('Generate report card button not found');
+    }
+
+    // Add event listener to generate all reports button
+    const generateAllBtn = document.getElementById('generate-all-reports');
+    if (generateAllBtn) {
+        console.log('Generate all reports button found, adding click event listener');
+        generateAllBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Generate all reports button clicked');
+            generateAllClassReports();
+        });
+    } else {
+        console.error('Generate all reports button not found');
     }
 
     // Wire Delete Marks button

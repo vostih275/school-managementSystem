@@ -421,17 +421,19 @@ const generateComprehensiveReport = async (req, res) => {
             studentTermMap[sid].averages.push(subjectAverage);
         }
 
-        const classAverages = Object.entries(studentTermMap).map(([sid, data]) => ({
-            studentId: sid,
-            name: data.name,
-            termAverage: data.averages.length
-                ? data.averages.reduce((a, b) => a + b, 0) / data.averages.length
-                : 0
-        }));
+        const classAverages = Object.entries(studentTermMap).map(([sid, data]) => {
+            const totalMarks = data.averages.reduce((a, b) => a + b, 0);
+            return {
+                studentId: sid,
+                name: data.name,
+                totalMarks,
+                termAverage: data.averages.length ? totalMarks / data.averages.length : 0
+            };
+        });
 
         const studentRecord = classAverages.find(s => s.studentId === studentId);
         const termAverage = studentRecord ? studentRecord.termAverage : 0;
-        const classPosition = rank(termAverage, classAverages.map(s => s.termAverage));
+        const classPosition = rank(studentRecord ? studentRecord.totalMarks : 0, classAverages.map(s => s.totalMarks));
         const classSize = classAverages.length;
 
         // Build per-subject report data
