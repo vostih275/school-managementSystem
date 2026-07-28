@@ -15,12 +15,12 @@ const connectDB = async () => {
 
     const preferredDb = process.env.DB_NAME ? process.env.DB_NAME.trim() : '';
     const candidateDbs = preferredDb ? [preferredDb] : ['school', 'School0', 'SW'];
-    let selectedConn = null;
+    const results = [];
     let lastError = null;
 
     for (const dbName of candidateDbs) {
       try {
-        if (selectedConn) {
+        if (mongoose.connection.readyState !== 0) {
           await mongoose.disconnect();
           console.log(`Disconnected from previous database, trying ${dbName}`);
         }
@@ -32,31 +32,40 @@ const connectDB = async () => {
         };
 
         console.log(`Trying MongoDB database: ${dbName}`);
-        selectedConn = await mongoose.connect(mongoUri, options);
+        await mongoose.connect(mongoUri, options);
 
         const User = require('../models/User');
         const userCount = await User.countDocuments();
         console.log(`Database '${dbName}' has ${userCount} user documents.`);
 
-        if (userCount > 0 || dbName === candidateDbs[candidateDbs.length - 1]) {
-          console.log(`✅ Selected MongoDB database: ${dbName} (${userCount} users)`);
-          break;
-        }
-
-        console.log(`No users in '${dbName}', trying next candidate...`);
+        results.push({ dbName, userCount });
       } catch (err) {
         console.error(`Failed to use database '${dbName}':`, err.message);
         lastError = err;
       }
     }
 
-    if (!selectedConn) {
+    if (results.length === 0) {
       console.error('❌ Could not connect to any candidate database.');
       if (lastError) throw lastError;
       process.exit(1);
     }
 
-    const conn = selectedConn;
+    const best = results.reduce((a, b) => (a.userCount >= b.userCount ? a : b));
+    console.log('Candidate database user counts:', results.map(r => `${r.dbName}: ${r.userCount}`).join(', '));
+    console.log(`✅ Selected MongoDB database: ${best.dbName} (${best.userCount} users)`);
+
+    if (mongoose.connection.name !== best.dbName) {
+      await mongoose.disconnect();
+      const options = {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        dbName: best.dbName,
+      };
+      await mongoose.connect(mongoUri, options);
+    }
+
+    const conn = mongoose;
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📦 MongoDB Database: ${conn.connection.name}`);
 
