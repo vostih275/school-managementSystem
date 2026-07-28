@@ -13,7 +13,8 @@ const connectDB = async () => {
     console.log('Connecting to MongoDB using URI:', displayUri);
     console.log('DB_NAME env var:', process.env.DB_NAME || '<not set>');
 
-    const preferredDb = process.env.DB_NAME ? process.env.DB_NAME.trim() : '';
+    const preferredDb = process.env.DB_NAME ? process.env.DB_NAME.trim()
+      : (process.env.MONGODB_NAME ? process.env.MONGODB_NAME.trim() : '');
     const candidateDbs = preferredDb ? [preferredDb] : ['school', 'School0', 'SW'];
     const results = [];
     let lastError = null;
