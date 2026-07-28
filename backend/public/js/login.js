@@ -59,7 +59,7 @@ async function handlePasswordReset(e) {
     try {
         const AUTH_URL = (window.API_CONFIG && window.API_CONFIG.AUTH_URL)
             ? window.API_CONFIG.AUTH_URL
-            : 'https://aic-school-system-c0j6.onrender.com/api/auth';
+            : '/api/auth';
 
         const response = await fetch(`${AUTH_URL}/first-login-reset`, {
             method: 'POST',
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             try {
                 console.log('Attempting login with:', { identifier });
-                const API_URL = (window.API_CONFIG || {}).AUTH_URL || `${window.API_CONFIG?.BASE_URL || 'https://aic-school-system-c0j6.onrender.com'}/api/auth`;
+                const API_URL = (window.API_CONFIG || {}).AUTH_URL || `${window.API_CONFIG?.BASE_URL || window.location.origin}/api/auth`;
                 const response = await fetch(`${API_URL}/login`, {
                     method: 'POST',
                     headers: {
