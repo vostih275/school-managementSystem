@@ -179,7 +179,9 @@ async function loadStudentsForReportCard(className) {
         students.forEach(student => {
             const option = document.createElement('option');
             option.value = student._id || student.id;
-            option.textContent = student.name || `Student ${student._id || student.id}`;
+            const adm = student.admissionNumber || student.assessmentNumber || '';
+            const name = student.name || `Student ${student._id || student.id}`;
+            option.textContent = adm ? `${name} (${adm})` : name;
             reportStudentSelect.appendChild(option);
         });
         
@@ -283,6 +285,7 @@ function buildReportCardHtml(reportData) {
 
         const studentName = student.name || (studentSelect ? studentSelect.options[studentSelect.selectedIndex]?.text : 'N/A') || 'N/A';
         const className = student.class || (classSelect ? classSelect.value : '') || 'N/A';
+        const admissionNumber = student.admissionNumber || '';
         const term = payload.term || (termSelect ? termSelect.value : '') || 'N/A';
         const year = payload.year || new Date().getFullYear();
         const termNumber = String(term).replace(/\D/g, '') || term;
@@ -406,6 +409,10 @@ function buildReportCardHtml(reportData) {
                     <span>LEARNER'S NAME: ${studentName}</span>
                     <span>GRADE: ${className}</span>
                 </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-weight:600;">
+                    <span>ADMISSION NO: ${admissionNumber || 'N/A'}</span>
+                    <span>TERM: ${term}</span>
+                </div>
                 <p style="margin:4px 0; font-style:italic; font-size:11px;">Dear Parents/Guardians, This report form shows the ability and progress your child has made in different learning areas. The school welcomes you, should you desire to know more about your child's progress.</p>
             </div>
 
@@ -527,10 +534,29 @@ function updateReportCardPreview(reportData) {
         const subjects = Array.isArray(payload.subjects) ? payload.subjects : [];
         const termAverage = Number(payload.termAverage) || 0;
         const totalMarks = termAverage * subjects.length;
+        const studentName = payload.student?.name || '';
         const className = payload.student?.class || '';
+        const admissionNumber = payload.student?.admissionNumber || '';
+        const term = payload.term || '';
+        const year = payload.year || new Date().getFullYear();
         const classPosition = payload.classPosition !== undefined && payload.classPosition !== null ? Number(payload.classPosition) : null;
         const classSize = payload.classSize !== undefined && payload.classSize !== null ? Number(payload.classSize) : null;
         const totalStudents = payload.totalStudents !== undefined && payload.totalStudents !== null ? Number(payload.totalStudents) : classSize;
+
+        const studentNameEl = document.getElementById('student-name');
+        if (studentNameEl) studentNameEl.textContent = studentName;
+
+        const studentClassEl = document.getElementById('student-class');
+        if (studentClassEl) studentClassEl.textContent = className;
+
+        const admissionNoEl = document.getElementById('admission-no');
+        if (admissionNoEl) admissionNoEl.textContent = admissionNumber || '-';
+
+        const termDisplay = document.getElementById('term-display');
+        if (termDisplay) termDisplay.textContent = `${term} (${year})`;
+
+        const reportTermDisplay = document.getElementById('report-term-display');
+        if (reportTermDisplay) reportTermDisplay.textContent = `TERMLY REPORT CARD — ${term} ${year}`;
 
         const classPositionEl = document.getElementById('class-position');
         if (classPositionEl) {
@@ -671,6 +697,7 @@ function _deprecatedUpdateReportCardPreview(reportData) {
         // Student info (fallback to current form selections if not in payload)
         const studentName = student.name || (studentSelect ? studentSelect.options[studentSelect.selectedIndex]?.text : 'N/A') || 'N/A';
         const className = student.class || (classSelect ? classSelect.value : '') || 'N/A';
+        const admissionNumber = student.admissionNumber || '';
         const term = payload.term || (termSelect ? termSelect.value : '') || 'N/A';
         const year = payload.year || new Date().getFullYear();
 
@@ -679,6 +706,9 @@ function _deprecatedUpdateReportCardPreview(reportData) {
 
         const studentClassElement = document.getElementById('student-class');
         if (studentClassElement) studentClassElement.textContent = className;
+
+        const admissionNoElement = document.getElementById('admission-no');
+        if (admissionNoElement) admissionNoElement.textContent = admissionNumber || '-';
 
         const termDisplay = document.getElementById('term-display');
         if (termDisplay) termDisplay.textContent = `${term} (${year})`;

@@ -21,18 +21,21 @@ exports.getStudentsByClass = async (req, res) => {
 
         console.log(`Fetching students for class: ${className}`);
         
+        const escaped = className.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const classRegex = new RegExp(`^${escaped}$`, 'i');
         const query = {
             role: 'student',
             $or: [
-                { class: className },
-                { 'profile.class': className }
+                { class: { $regex: classRegex } },
+                { 'profile.class': { $regex: classRegex } },
+                { classAssigned: { $regex: classRegex } }
             ]
         };
-        
+
         console.log('MongoDB query:', JSON.stringify(query, null, 2));
-        
+
         const students = await User.find(query)
-            .select('name email profile.class class')
+            .select('name email admissionNumber profile.class class classAssigned')
             .lean()
             .exec();
             

@@ -179,7 +179,9 @@ async function loadStudentsForReportCard(className) {
         students.forEach(student => {
             const option = document.createElement('option');
             option.value = student._id || student.id;
-            option.textContent = student.name || `Student ${student._id || student.id}`;
+            const adm = student.admissionNumber || student.assessmentNumber || '';
+            const name = student.name || `Student ${student._id || student.id}`;
+            option.textContent = adm ? `${name} (${adm})` : name;
             reportStudentSelect.appendChild(option);
         });
         
@@ -249,19 +251,22 @@ function getGradeRemarks(grade) {
 
 // Function to format a single mark cell (shows '-' for null/undefined/blank)
 function formatMark(value) {
-    if (value === null || value === undefined || value === '') return '-';
-    if (typeof value === 'number') return value.toString();
-    return value;
+    if (value === null || value === undefined || value === '' || (typeof value === 'number' && isNaN(value))) return '[----]';
+    const num = Number(value);
+    if (isNaN(num)) return '[----]';
+    return num;
 }
 
 function getTeacherRemark(totalMarks) {
-    if (totalMarks >= 788 && totalMarks <= 900) return 'E.E1 - Excellent work! Bravo!';
-    if (totalMarks >= 676) return 'E.E2 - Very good work. You are almost to excellent!';
-    if (totalMarks >= 563) return 'M.E1 - This is good. Target more!';
-    if (totalMarks >= 451) return 'M.E2 - Good work. Aim higher.';
-    if (totalMarks >= 338) return 'A.E1 - This is averagely fair work. Put more effort.';
-    if (totalMarks >= 226) return 'A.E2 - The ability is good. Try extra hard.';
-    if (totalMarks >= 113) return 'B.E1 - You have the potential. Aim higher.';
+    const numericTotal = Number(totalMarks);
+    if (isNaN(numericTotal) || numericTotal === 0) return 'Missed Assessments';
+    if (numericTotal >= 788 && numericTotal <= 900) return 'E.E1 - Excellent work! Bravo!';
+    if (numericTotal >= 676) return 'E.E2 - Very good work. You are almost to excellent!';
+    if (numericTotal >= 563) return 'M.E1 - This is good. Target more!';
+    if (numericTotal >= 451) return 'M.E2 - Good work. Aim higher.';
+    if (numericTotal >= 338) return 'A.E1 - This is averagely fair work. Put more effort.';
+    if (numericTotal >= 226) return 'A.E2 - The ability is good. Try extra hard.';
+    if (numericTotal >= 113) return 'B.E1 - You have the potential. Aim higher.';
     return 'B.E2 - You can work hard. Keep trying.';
 }
 
@@ -280,17 +285,18 @@ function buildReportCardHtml(reportData) {
 
         const studentName = student.name || (studentSelect ? studentSelect.options[studentSelect.selectedIndex]?.text : 'N/A') || 'N/A';
         const className = student.class || (classSelect ? classSelect.value : '') || 'N/A';
+        const admissionNumber = student.admissionNumber || '';
         const term = payload.term || (termSelect ? termSelect.value : '') || 'N/A';
         const year = payload.year || new Date().getFullYear();
         const termNumber = String(term).replace(/\D/g, '') || term;
 
-        const termAverage = payload.termAverage !== undefined && payload.termAverage !== null ? payload.termAverage : 0;
+        const termAverage = Number(payload.termAverage) || 0;
         const totalMarks = termAverage * subjects.length;
         const teacherRemark = getTeacherRemark(totalMarks);
-        const overallGrade = termAverage ? calculateGradeFromMarks(termAverage, className) : '-';
-        const classPosition = payload.classPosition !== undefined ? payload.classPosition : null;
-        const classSize = payload.classSize !== undefined ? payload.classSize : null;
-        const totalStudents = payload.totalStudents !== undefined ? payload.totalStudents : classSize;
+        const overallGrade = !isNaN(termAverage) ? calculateGradeFromMarks(termAverage, className) : '-';
+        const classPosition = payload.classPosition !== undefined && payload.classPosition !== null ? Number(payload.classPosition) : null;
+        const classSize = payload.classSize !== undefined && payload.classSize !== null ? Number(payload.classSize) : null;
+        const totalStudents = payload.totalStudents !== undefined && payload.totalStudents !== null ? Number(payload.totalStudents) : classSize;
         const classTeacherName = (() => {
             const grade = String(className).match(/\d+/);
             switch (grade ? grade[0] : '') {
@@ -315,24 +321,27 @@ function buildReportCardHtml(reportData) {
         sorted.forEach((item, idx) => {
             const name = item.subject || `Subject ${idx + 1}`;
             const a = item.assessments || {};
-            const ass1 = a.ass1 !== undefined && a.ass1 !== null ? a.ass1 : null;
-            const ass2 = a.ass2 !== undefined && a.ass2 !== null ? a.ass2 : null;
-            const ass3 = a.ass3 !== undefined && a.ass3 !== null ? a.ass3 : null;
-            const ass4 = a.ass4 !== undefined && a.ass4 !== null ? a.ass4 : null;
-            const avg = item.subjectAverage !== undefined && item.subjectAverage !== null ? item.subjectAverage : null;
+            const toNum = v => (v !== undefined && v !== null && v !== '' && !isNaN(Number(v))) ? Number(v) : null;
+            const ass1 = toNum(a.ass1);
+            const ass2 = toNum(a.ass2);
+            const ass3 = toNum(a.ass3);
+            const ass4 = toNum(a.ass4);
+            const avg = toNum(item.subjectAverage);
+
+            const level = v => v !== null && !isNaN(v) ? calculateGradeFromMarks(v, className) : '';
 
             rows += `<tr style="background:${idx % 2 === 1 ? '#f2f2f2' : 'transparent'};">
                 <td style="padding:4px; border:1px solid #000; text-align:left; font-weight:600;">${name}</td>
                 <td style="padding:4px; border:1px solid #000; text-align:center;">${formatMark(ass1)}</td>
-                <td style="padding:4px; border:1px solid #000; text-align:center;">${ass1 !== null ? calculateGradeFromMarks(ass1, className) : '-'}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${level(ass1)}</td>
                 <td style="padding:4px; border:1px solid #000; text-align:center;">${formatMark(ass2)}</td>
-                <td style="padding:4px; border:1px solid #000; text-align:center;">${ass2 !== null ? calculateGradeFromMarks(ass2, className) : '-'}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${level(ass2)}</td>
                 <td style="padding:4px; border:1px solid #000; text-align:center;">${formatMark(ass3)}</td>
-                <td style="padding:4px; border:1px solid #000; text-align:center;">${ass3 !== null ? calculateGradeFromMarks(ass3, className) : '-'}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${level(ass3)}</td>
                 <td style="padding:4px; border:1px solid #000; text-align:center;">${formatMark(ass4)}</td>
-                <td style="padding:4px; border:1px solid #000; text-align:center;">${ass4 !== null ? calculateGradeFromMarks(ass4, className) : '-'}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center;">${level(ass4)}</td>
                 <td style="padding:4px; border:1px solid #000; text-align:center; font-weight:700;">${formatMark(avg)}</td>
-                <td style="padding:4px; border:1px solid #000; text-align:center; font-weight:700;">${avg !== null ? calculateGradeFromMarks(avg, className) : '-'}</td>
+                <td style="padding:4px; border:1px solid #000; text-align:center; font-weight:700;">${level(avg)}</td>
                 <td style="padding:4px; border:1px solid #000; text-align:center;">${item.teacherInitials || item.teacherInitial || ''}</td>
             </tr>`;
         });
@@ -343,15 +352,30 @@ function buildReportCardHtml(reportData) {
         let count = 0;
         sorted.forEach(item => {
             const a = item.assessments || {};
-            if (typeof a.ass1 === 'number') { totalAss1 = (totalAss1 || 0) + a.ass1; ptsAss1 += isJss ? (calculatePointsFromMarks(a.ass1, className) || 0) : 0; }
-            if (typeof a.ass2 === 'number') { totalAss2 = (totalAss2 || 0) + a.ass2; ptsAss2 += isJss ? (calculatePointsFromMarks(a.ass2, className) || 0) : 0; }
-            if (typeof a.ass3 === 'number') { totalAss3 = (totalAss3 || 0) + a.ass3; ptsAss3 += isJss ? (calculatePointsFromMarks(a.ass3, className) || 0) : 0; }
-            if (typeof a.ass4 === 'number') { totalAss4 = (totalAss4 || 0) + a.ass4; ptsAss4 += isJss ? (calculatePointsFromMarks(a.ass4, className) || 0) : 0; }
-            if (typeof item.subjectAverage === 'number') { totalAvg = (totalAvg || 0) + item.subjectAverage; totalPts += isJss ? (item.points !== undefined && item.points !== null ? item.points : (calculatePointsFromMarks(item.subjectAverage, className) || 0)) : 0; count++; }
+            const n1 = Number(a.ass1);
+            const n2 = Number(a.ass2);
+            const n3 = Number(a.ass3);
+            const n4 = Number(a.ass4);
+            const avg = Number(item.subjectAverage);
+
+            if (!isNaN(n1)) { totalAss1 = totalAss1 === null ? n1 : totalAss1 + n1; ptsAss1 += isJss ? (Number(calculatePointsFromMarks(n1, className)) || 0) : 0; }
+            if (!isNaN(n2)) { totalAss2 = totalAss2 === null ? n2 : totalAss2 + n2; ptsAss2 += isJss ? (Number(calculatePointsFromMarks(n2, className)) || 0) : 0; }
+            if (!isNaN(n3)) { totalAss3 = totalAss3 === null ? n3 : totalAss3 + n3; ptsAss3 += isJss ? (Number(calculatePointsFromMarks(n3, className)) || 0) : 0; }
+            if (!isNaN(n4)) { totalAss4 = totalAss4 === null ? n4 : totalAss4 + n4; ptsAss4 += isJss ? (Number(calculatePointsFromMarks(n4, className)) || 0) : 0; }
+
+            if (!isNaN(avg)) {
+                totalAvg = totalAvg === null ? avg : totalAvg + avg;
+                totalPts += isJss ? (Number(item.points) || Number(calculatePointsFromMarks(avg, className)) || 0) : 0;
+                count++;
+            }
         });
 
-        const display = v => (v === null || v === undefined || v === '') ? '-' : v;
-        const ptsDisplay = p => isJss ? (p || 0) : '-';
+        const display = v => (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) ? '-' : v;
+        const ptsDisplay = p => {
+            if (!isJss) return '-';
+            const n = Number(p);
+            return Number.isNaN(n) ? '-' : n;
+        };
 
         const html = `
         <div class="official-report-card report-card-container" style="background:#fff; color:#000; padding:12px; font-family:Arial, sans-serif; font-size:12px; line-height:1.35;">
@@ -384,6 +408,10 @@ function buildReportCardHtml(reportData) {
                 <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-weight:600;">
                     <span>LEARNER'S NAME: ${studentName}</span>
                     <span>GRADE: ${className}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-weight:600;">
+                    <span>ADMISSION NO: ${admissionNumber || 'N/A'}</span>
+                    <span>TERM: ${term}</span>
                 </div>
                 <p style="margin:4px 0; font-style:italic; font-size:11px;">Dear Parents/Guardians, This report form shows the ability and progress your child has made in different learning areas. The school welcomes you, should you desire to know more about your child's progress.</p>
             </div>
@@ -437,15 +465,15 @@ function buildReportCardHtml(reportData) {
                     </tr>
                     <tr style="font-weight:700;">
                         <td style="padding:4px; border:1px solid #000; text-align:left;">CLASS POSITION</td>
-                        <td style="padding:4px; border:1px solid #000; text-align:center;">-</td>
                         <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:4px; border:1px solid #000; text-align:center;">-</td>
                         <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:4px; border:1px solid #000; text-align:center;">-</td>
                         <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:4px; border:1px solid #000; text-align:center;">-</td>
                         <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
-                        <td style="padding:4px; border:1px solid #000; text-align:center;">${classPosition !== null && totalStudents !== null ? `${classPosition} (out of ${totalStudents})` : '-'}</td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
+                        <td style="padding:4px; border:1px solid #000; text-align:center;">${classPosition !== null && !isNaN(classPosition) && totalStudents !== null && !isNaN(totalStudents) ? `${classPosition} (out of ${totalStudents})` : '-'}</td>
                         <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
                         <td style="padding:4px; border:1px solid #000; text-align:center;"></td>
                     </tr>
@@ -504,21 +532,40 @@ function updateReportCardPreview(reportData) {
 
         // Update summary panel values alongside the rendered report card
         const subjects = Array.isArray(payload.subjects) ? payload.subjects : [];
-        const termAverage = payload.termAverage !== undefined && payload.termAverage !== null ? payload.termAverage : 0;
+        const termAverage = Number(payload.termAverage) || 0;
         const totalMarks = termAverage * subjects.length;
+        const studentName = payload.student?.name || '';
         const className = payload.student?.class || '';
-        const classPosition = payload.classPosition !== undefined ? payload.classPosition : null;
-        const classSize = payload.classSize !== undefined ? payload.classSize : null;
-        const totalStudents = payload.totalStudents !== undefined ? payload.totalStudents : classSize;
+        const admissionNumber = payload.student?.admissionNumber || '';
+        const term = payload.term || '';
+        const year = payload.year || new Date().getFullYear();
+        const classPosition = payload.classPosition !== undefined && payload.classPosition !== null ? Number(payload.classPosition) : null;
+        const classSize = payload.classSize !== undefined && payload.classSize !== null ? Number(payload.classSize) : null;
+        const totalStudents = payload.totalStudents !== undefined && payload.totalStudents !== null ? Number(payload.totalStudents) : classSize;
+
+        const studentNameEl = document.getElementById('student-name');
+        if (studentNameEl) studentNameEl.textContent = studentName;
+
+        const studentClassEl = document.getElementById('student-class');
+        if (studentClassEl) studentClassEl.textContent = className;
+
+        const admissionNoEl = document.getElementById('admission-no');
+        if (admissionNoEl) admissionNoEl.textContent = admissionNumber || '-';
+
+        const termDisplay = document.getElementById('term-display');
+        if (termDisplay) termDisplay.textContent = `${term} (${year})`;
+
+        const reportTermDisplay = document.getElementById('report-term-display');
+        if (reportTermDisplay) reportTermDisplay.textContent = `TERMLY REPORT CARD — ${term} ${year}`;
 
         const classPositionEl = document.getElementById('class-position');
         if (classPositionEl) {
-            classPositionEl.textContent = (classPosition !== null && totalStudents !== null) ? `${classPosition} (out of ${totalStudents})` : '-';
+            classPositionEl.textContent = (classPosition !== null && !isNaN(classPosition) && totalStudents !== null && !isNaN(totalStudents)) ? `${classPosition} (out of ${totalStudents})` : '-';
         }
 
         const overallGradeEl = document.getElementById('overall-grade');
         if (overallGradeEl) {
-            overallGradeEl.textContent = termAverage ? calculateGradeFromMarks(termAverage, className) : '-';
+            overallGradeEl.textContent = !isNaN(termAverage) ? calculateGradeFromMarks(termAverage, className) : '-';
         }
 
         const teacherRemarksEl = document.getElementById('teacher-remarks-preview');
@@ -650,6 +697,7 @@ function _deprecatedUpdateReportCardPreview(reportData) {
         // Student info (fallback to current form selections if not in payload)
         const studentName = student.name || (studentSelect ? studentSelect.options[studentSelect.selectedIndex]?.text : 'N/A') || 'N/A';
         const className = student.class || (classSelect ? classSelect.value : '') || 'N/A';
+        const admissionNumber = student.admissionNumber || '';
         const term = payload.term || (termSelect ? termSelect.value : '') || 'N/A';
         const year = payload.year || new Date().getFullYear();
 
@@ -658,6 +706,9 @@ function _deprecatedUpdateReportCardPreview(reportData) {
 
         const studentClassElement = document.getElementById('student-class');
         if (studentClassElement) studentClassElement.textContent = className;
+
+        const admissionNoElement = document.getElementById('admission-no');
+        if (admissionNoElement) admissionNoElement.textContent = admissionNumber || '-';
 
         const termDisplay = document.getElementById('term-display');
         if (termDisplay) termDisplay.textContent = `${term} (${year})`;

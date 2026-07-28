@@ -268,6 +268,7 @@ exports.getStudentSummary = async (req, res) => {
                     id: student._id,
                     name: student.name,
                     email: student.email,
+                    admissionNumber: student.admissionNumber || '',
                     class: student.class || student.profile?.class || ''
                 },
                 filters: {
@@ -437,6 +438,7 @@ exports.buildTermReportData = buildTermReportData = async (studentId, term, acad
             id: student._id,
             name: student.name,
             email: student.email,
+            admissionNumber: student.admissionNumber || '',
             class: studentClass
         },
         term: parseInt(term, 10),
@@ -588,6 +590,7 @@ const buildTermReportDataFromGrades = async (studentId, term, academicYear) => {
             id: student._id,
             name: student.name,
             email: student.email,
+            admissionNumber: student.admissionNumber || '',
             class: studentClass
         },
         term,

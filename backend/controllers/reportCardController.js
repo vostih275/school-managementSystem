@@ -522,6 +522,7 @@ const generateComprehensiveReport = async (req, res) => {
                 student: {
                     id: student._id,
                     name: student.name || 'Unknown Student',
+                    admissionNumber: student.admissionNumber || '',
                     class: studentClass
                 },
                 term,
