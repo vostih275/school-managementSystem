@@ -4,7 +4,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const connectDB = require('./config/db');
-const corsMiddleware = require('./middleware/cors');
+const cors = require('cors');
 const requestLogger = require('./middleware/requestLogger');
 
 const app = express();
@@ -27,7 +27,12 @@ app.set('trust proxy', 1);
 app.use(requestLogger);
 
 // CORS (single, consistent middleware)
-app.use(corsMiddleware);
+app.use(cors({
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Body parsers
 app.use(express.json({ limit: '50mb' }));
