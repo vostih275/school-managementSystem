@@ -2,10 +2,10 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI;
+    const mongoUri = process.env.MONGOURI || process.env.MONGO_URI || process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URL;
     if (!mongoUri) {
-      console.error('❌ MONGODB_URI environment variable is not set.');
-      console.error('   The server cannot connect to MongoDB. Set MONGODB_URI in your Render Environment Variables.');
+      console.error('❌ No MongoDB URI found in environment variables.');
+      console.error('   Set one of MONGOURI, MONGO_URI, MONGODB_URI, MONGODB_URL, or MONGO_URL in your Render Environment Variables.');
       process.exit(1);
     }
 
