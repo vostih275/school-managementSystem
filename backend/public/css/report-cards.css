@@ -140,4 +140,19 @@
     overflow: visible;
     padding: 0;
   }
+
+  /* Force clean page breaks for report card containers */
+  .bulk-report-card:not(:last-child),
+  .report-card:not(:last-child),
+  .report-container:not(:last-child) {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .bulk-report-card,
+  .report-card,
+  .report-container {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
 }

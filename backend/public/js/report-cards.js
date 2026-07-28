@@ -704,7 +704,7 @@ async function generateAllClassReports() {
             const reportData = await response.json();
             const cardHtml = buildReportCardHtml(reportData);
             const isLast = i === students.length - 1;
-            html += `<div class="bulk-report-card" style="page-break-after: ${isLast ? 'auto' : 'always'};">${cardHtml}</div>`;
+            html += `<div class="bulk-report-card" style="page-break-after: ${isLast ? 'auto' : 'always'}; break-after: ${isLast ? 'auto' : 'page'}; page-break-inside: avoid; break-inside: avoid;">${cardHtml}</div>`;
             generatedCount++;
         } catch (error) {
             console.error(`Error generating report for ${student.name || studentId}:`, error);
