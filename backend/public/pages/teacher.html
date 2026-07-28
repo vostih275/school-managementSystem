@@ -4658,7 +4658,7 @@
         console.log('Fetching official JSS subjects from API for', className);
         try {
           const token = localStorage.getItem('token');
-          const response = await fetch(`${API_BASE_URL}/subjects`, {
+          const response = await fetch(`${(window.API_CONFIG?.BASE_URL || 'http://localhost:5000')}/api/subjects`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -5126,12 +5126,17 @@
     }
 
     // Function to save marks using student ID and term
-    async function saveStudentMarks(studentId, term) {
+    async function saveStudentMarks(passedStudentId, passedTerm) {
         try {
             // Get form elements
             const studentSelect = document.getElementById('marks-student');
+            const termSelect = document.getElementById('marks-term');
             const className = document.getElementById('marks-class').value;
             const teacherRemarks = document.getElementById('teacher-remarks').value;
+
+            // Robustly re-read current values from the active form elements
+            const studentId = (studentSelect && studentSelect.value.trim()) || passedStudentId;
+            const term = (termSelect && termSelect.value.trim()) || passedTerm;
             
             // Validate inputs
             if (!studentId || !term) {
