@@ -11,6 +11,7 @@ const connectDB = async () => {
 
     const displayUri = mongoUri.replace(/\/\/([^:/@]+):([^@]+)@/, '//<user>:<pass>@');
     console.log('Connecting to MongoDB using URI:', displayUri);
+    console.log('DB_NAME env var:', process.env.DB_NAME || '<not set>');
 
     const options = {
       useNewUrlParser: true,
@@ -24,6 +25,15 @@ const connectDB = async () => {
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📦 MongoDB Database: ${conn.connection.name}`);
+
+    // Show how many user documents exist in the connected database
+    try {
+      const User = require('../models/User');
+      const userCount = await User.countDocuments();
+      console.log('User documents in connected database:', userCount);
+    } catch (countErr) {
+      console.log('Could not count users:', countErr.message);
+    }
 
     // List all databases on the cluster to help locate the correct one
     try {
