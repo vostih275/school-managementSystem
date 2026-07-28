@@ -20,7 +20,8 @@ const findUserByIdentifier = async (identifier) => {
     if (!raw) return null;
 
     if (raw.includes('@')) {
-        return await User.findOne({ email: raw.toLowerCase() });
+        const escaped = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return await User.findOne({ email: { $regex: new RegExp(`^${escaped}$`, 'i') } });
     }
 
     // Treat as admission number (case-insensitive exact match)
