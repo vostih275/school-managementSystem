@@ -344,15 +344,24 @@ function buildReportCardHtml(reportData) {
             return (a.subject || '').localeCompare(b.subject || '');
         });
 
+        const toNum = v => (v !== undefined && v !== null && v !== '' && !isNaN(Number(v))) ? Number(v) : null;
+
+        // Determine which assessment columns have any real scores
+        const hasAss1 = sorted.some(item => toNum(item.assessments?.ass1) !== null);
+        const hasAss2 = sorted.some(item => toNum(item.assessments?.ass2) !== null);
+        const hasAss3 = sorted.some(item => toNum(item.assessments?.ass3) !== null);
+        const hasAss4 = sorted.some(item => toNum(item.assessments?.ass4) !== null);
+
         sorted.forEach((item, idx) => {
             const name = item.subject || `Subject ${idx + 1}`;
             const a = item.assessments || {};
-            const toNum = v => (v !== undefined && v !== null && v !== '' && !isNaN(Number(v))) ? Number(v) : null;
             const ass1 = toNum(a.ass1);
             const ass2 = toNum(a.ass2);
             const ass3 = toNum(a.ass3);
             const ass4 = toNum(a.ass4);
-            const avg = toNum(item.subjectAverage);
+            const rawAvg = toNum(item.subjectAverage);
+            const hasAny = ass1 !== null || ass2 !== null || ass3 !== null || ass4 !== null;
+            const avg = hasAny ? rawAvg : null;
 
             const level = v => v !== null && !isNaN(v) ? calculateGradeFromMarks(v, className) : '';
 
@@ -372,26 +381,28 @@ function buildReportCardHtml(reportData) {
             </tr>`;
         });
 
-        // Totals
+        // Totals (exclude un-administered columns and null scores from all aggregations)
         let totalAss1 = null, totalAss2 = null, totalAss3 = null, totalAss4 = null, totalAvg = null;
-        let ptsAss1 = 0, ptsAss2 = 0, ptsAss3 = 0, ptsAss4 = 0, totalPts = 0;
+        let ptsAss1 = null, ptsAss2 = null, ptsAss3 = null, ptsAss4 = null, totalPts = null;
         let count = 0;
         sorted.forEach(item => {
             const a = item.assessments || {};
-            const n1 = Number(a.ass1);
-            const n2 = Number(a.ass2);
-            const n3 = Number(a.ass3);
-            const n4 = Number(a.ass4);
-            const avg = Number(item.subjectAverage);
+            const n1 = toNum(a.ass1);
+            const n2 = toNum(a.ass2);
+            const n3 = toNum(a.ass3);
+            const n4 = toNum(a.ass4);
+            const rawAvg = toNum(item.subjectAverage);
+            const hasAny = n1 !== null || n2 !== null || n3 !== null || n4 !== null;
+            const avg = hasAny ? rawAvg : null;
 
-            if (!isNaN(n1)) { totalAss1 = totalAss1 === null ? n1 : totalAss1 + n1; ptsAss1 += isJss ? (Number(calculatePointsFromMarks(n1, className)) || 0) : 0; }
-            if (!isNaN(n2)) { totalAss2 = totalAss2 === null ? n2 : totalAss2 + n2; ptsAss2 += isJss ? (Number(calculatePointsFromMarks(n2, className)) || 0) : 0; }
-            if (!isNaN(n3)) { totalAss3 = totalAss3 === null ? n3 : totalAss3 + n3; ptsAss3 += isJss ? (Number(calculatePointsFromMarks(n3, className)) || 0) : 0; }
-            if (!isNaN(n4)) { totalAss4 = totalAss4 === null ? n4 : totalAss4 + n4; ptsAss4 += isJss ? (Number(calculatePointsFromMarks(n4, className)) || 0) : 0; }
+            if (hasAss1 && n1 !== null) { totalAss1 = totalAss1 === null ? n1 : totalAss1 + n1; ptsAss1 = (ptsAss1 === null ? 0 : ptsAss1) + (isJss ? (Number(calculatePointsFromMarks(n1, className)) || 0) : 0); }
+            if (hasAss2 && n2 !== null) { totalAss2 = totalAss2 === null ? n2 : totalAss2 + n2; ptsAss2 = (ptsAss2 === null ? 0 : ptsAss2) + (isJss ? (Number(calculatePointsFromMarks(n2, className)) || 0) : 0); }
+            if (hasAss3 && n3 !== null) { totalAss3 = totalAss3 === null ? n3 : totalAss3 + n3; ptsAss3 = (ptsAss3 === null ? 0 : ptsAss3) + (isJss ? (Number(calculatePointsFromMarks(n3, className)) || 0) : 0); }
+            if (hasAss4 && n4 !== null) { totalAss4 = totalAss4 === null ? n4 : totalAss4 + n4; ptsAss4 = (ptsAss4 === null ? 0 : ptsAss4) + (isJss ? (Number(calculatePointsFromMarks(n4, className)) || 0) : 0); }
 
-            if (!isNaN(avg)) {
+            if (avg !== null) {
                 totalAvg = totalAvg === null ? avg : totalAvg + avg;
-                totalPts += isJss ? (Number(item.points) || Number(calculatePointsFromMarks(avg, className)) || 0) : 0;
+                totalPts = (totalPts === null ? 0 : totalPts) + (isJss ? (Number(item.points) || Number(calculatePointsFromMarks(avg, className)) || 0) : 0);
                 count++;
             }
         });
@@ -410,11 +421,12 @@ function buildReportCardHtml(reportData) {
             count
         });
 
-        const display = v => (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) ? '-' : v;
+        const display = v => (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) ? '[----]' : v;
         const ptsDisplay = p => {
             if (!isJss) return '-';
+            if (p === null || p === undefined) return '[----]';
             const n = Number(p);
-            return Number.isNaN(n) ? '-' : n;
+            return Number.isNaN(n) ? '[----]' : n;
         };
 
         const html = `
