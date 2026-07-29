@@ -149,11 +149,15 @@ userSchema.pre('save', function(next) {
 
 // Always hash the password before saving if it is not already hashed
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password')) {
+    return next();
+  }
+
   // bcrypt hashes start with '$2a$', '$2b$' or '$2y$'
   if (typeof this.password === 'string' && this.password.match(/^\$2[aby]\$/)) {
     return next();
   }
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
