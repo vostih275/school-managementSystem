@@ -12,7 +12,7 @@ const {
 } = require('../controllers/marksController');
 const {
     getMySubjectAssignments,
-    getSubjectMarks,
+    getSubjectMarks: getWorkflowSubjectMarks,
     submitSubjectMarks,
     lockSubjectMarks,
     getClassSubmissionsOverview,
@@ -32,7 +32,7 @@ router.get('/class/:className', authorize('Teacher'), getClassMarks);
 router.get('/subject/:subject', authorize('Teacher'), getSubjectMarks);
 // Subject-teacher workflow routes
 router.get('/workflow/teacher/assignments', authorize('Teacher', 'admin'), getMySubjectAssignments);
-router.get('/workflow/subject/:className/:subject', authorize('Teacher', 'admin'), getSubjectMarks);
+router.get('/workflow/subject/:className/:subject', authorize('Teacher', 'admin'), getWorkflowSubjectMarks);
 router.post('/workflow/submit', authorize('Teacher', 'admin'), submitSubjectMarks);
 router.post('/workflow/lock', authorize('Teacher', 'admin'), lockSubjectMarks);
 
