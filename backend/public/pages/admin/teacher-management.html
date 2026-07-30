@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Management - Admin</title>
+  <link rel="stylesheet" href="../../css/admin-dashboard.css" />
+  <style>
+    :root { --primary: #2563eb; --danger: #dc2626; --success: #16a34a; --bg: #f3f4f6; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1f2937; }
+    .container { max-width: 1100px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    h1 { margin: 0; font-size: 1.5rem; }
+    .btn { border: none; border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 0.9rem; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-secondary { background: #e5e7eb; color: #111; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e5e7eb; }
+    th { background: #f9fafb; font-weight: 600; }
+    tr:hover { background: #f9fafb; }
+    .actions .btn { margin-right: 6px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; background: #dbeafe; color: #1e40af; margin: 2px; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); align-items: center; justify-content: center; z-index: 50; }
+    .modal.active { display: flex; }
+    .modal-content { background: #fff; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 24px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .modal-header h2 { margin: 0; }
+    .close { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; margin-bottom: 4px; font-weight: 500; }
+    input, select { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
+    .row { display: flex; gap: 12px; }
+    .row > * { flex: 1; }
+    .subject-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .subject-row select, .subject-row input { flex: 1; }
+    .subject-row input[type="checkbox"] { width: auto; flex: 0; }
+    .alert { padding: 12px; border-radius: 6px; margin-bottom: 14px; display: none; }
+    .alert.success { background: #dcfce7; color: #166534; }
+    .alert.error { background: #fee2e2; color: #991b1b; }
+    .credential-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .credential-box p { margin: 6px 0; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Teacher Management</h1>
+      <button class="btn btn-primary" id="btn-add-teacher">+ Add Teacher</button>
+    </div>
+    <div class="alert" id="alert"></div>
+
+    <table id="teacher-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Class Teacher</th>
+          <th>Subjects</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Add/Edit Teacher Modal -->
+  <div class="modal" id="teacher-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title">Add Teacher</h2>
+        <button class="close" data-close="teacher-modal">&times;</button>
+      </div>
+      <form id="teacher-form">
+        <input type="hidden" id="teacher-id" />
+        <div class="row">
+          <div class="form-group">
+            <label for="first-name">First Name</label>
+            <input type="text" id="first-name" required />
+          </div>
+          <div class="form-group">
+            <label for="last-name">Last Name</label>
+            <input type="text" id="last-name" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone</label>
+          <input type="text" id="phone" />
+        </div>
+        <div class="form-group">
+          <label for="class-teacher">Class Teacher Assignment</label>
+          <select id="class-teacher">
+            <option value="">None</option>
+            <option value="Grade 7">Grade 7</option>
+            <option value="Grade 8">Grade 8</option>
+            <option value="Grade 9">Grade 9</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Subject Allocations</label>
+          <div id="subjects-list"></div>
+          <button type="button" class="btn btn-secondary" id="btn-add-subject">+ Add Subject</button>
+        </div>
+        <div style="text-align: right; margin-top: 20px;">
+          <button type="button" class="btn btn-secondary" data-close="teacher-modal">Cancel</button>
+          <button type="submit" class="btn btn-success">Save Teacher</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Credentials Popup -->
+  <div class="modal" id="credentials-modal">
+    <div class="modal-content" style="max-width: 420px;">
+      <div class="modal-header">
+        <h2>Teacher Login Created</h2>
+        <button class="close" data-close="credentials-modal">&times;</button>
+      </div>
+      <p>Share these credentials with the teacher. The password will not be shown again.</p>
+      <div class="credential-box">
+        <p><strong>Email:</strong> <span id="cred-email"></span></p>
+        <p><strong>Password:</strong> <span id="cred-password"></span></p>
+      </div>
+      <div style="text-align: right;">
+        <button class="btn btn-primary" id="btn-copy-creds">Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../js/config.js"></script>
+  <script src="../../js/admin-teachers.js"></script>
+</body>
+</html>

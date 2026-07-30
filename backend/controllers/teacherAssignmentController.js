@@ -1,5 +1,6 @@
 const Teacher = require('../models/Teacher');
 const User = require('../models/User');
+const { generateTeacherCredentials } = require('../utils/teacherCredentials');
 
 // GET /api/teachers
 exports.getAllTeachers = async (req, res) => {
@@ -50,17 +51,45 @@ exports.getTeachersByClass = async (req, res) => {
 // POST /api/teachers
 exports.createTeacher = async (req, res) => {
   try {
-    const { name, email, phone, classTeacher, subjects, user } = req.body;
+    const { name, phone, classTeacher, subjects } = req.body;
+    const { email, password } = generateTeacherCredentials(name);
+
+    // Prevent duplicate teacher accounts
+    const existingTeacher = await Teacher.findOne({ email });
+    if (existingTeacher) {
+      return res.status(409).json({ success: false, message: `Teacher with email ${email} already exists` });
+    }
+
+    let existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ success: false, message: `A User with email ${email} already exists` });
+    }
+
+    // Create the linked User authentication account (plain password is hashed by User.pre('save'))
+    const user = new User({
+      name,
+      email,
+      password,
+      role: 'teacher',
+      class: classTeacher || ''
+    });
+    await user.save();
+
     const teacher = new Teacher({
       name,
       email,
       phone,
-      classTeacher,
+      classTeacher: classTeacher || '',
       subjects: subjects || [],
-      user
+      user: user._id
     });
     await teacher.save();
-    res.status(201).json({ success: true, teacher });
+
+    res.status(201).json({
+      success: true,
+      teacher,
+      credentials: { email, password }
+    });
   } catch (err) {
     console.error('Error creating teacher:', err);
     res.status(500).json({ success: false, message: 'Server error creating teacher' });

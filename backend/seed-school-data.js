@@ -2,8 +2,10 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const SchoolSettings = require('./models/SchoolSettings');
 const Teacher = require('./models/Teacher');
+const User = require('./models/User');
 const Class = require('./models/Class');
 const TimetableSlot = require('./models/TimetableSlot');
+const { generateTeacherCredentials } = require('./utils/teacherCredentials');
 
 const BASE_PERIODS = [
   { lessonNumber: 1, startTime: '07:30', endTime: '08:10' },
@@ -133,19 +135,56 @@ const CLASS_NAMES = ['Grade 7', 'Grade 8', 'Grade 9'];
     );
     console.log('School settings seeded:', settings.primaryEmail, settings.schoolPhone);
 
-    // 2. Seed/upsert teacher records
+    // 2. Seed/upsert teacher records and linked User accounts
     for (const t of TEACHER_ASSIGNMENTS) {
+      const { email, password } = generateTeacherCredentials(t.name);
+
+      // Upsert the Teacher record
       const teacher = await Teacher.findOneAndUpdate(
         { name: t.name },
         {
           name: t.name,
+          email,
           classTeacher: t.classTeacher || '',
           subjects: t.subjects,
           isActive: true
         },
         { new: true, upsert: true }
       );
-      console.log('Teacher seeded:', teacher.name, '| Class Teacher:', teacher.classTeacher || 'N/A', '| Subjects:', teacher.subjects.length);
+
+      // Find or create the linked User authentication account
+      let user = teacher.user ? await User.findById(teacher.user) : null;
+      if (!user) {
+        user = await User.findOne({ email });
+      }
+      if (!user) {
+        user = new User({
+          name: t.name,
+          email,
+          password,
+          role: 'teacher',
+          class: t.classTeacher || ''
+        });
+        await user.save();
+        console.log('User created:', email, '| Password:', password);
+      } else {
+        // Re-seed: keep the same account, refresh details in case the
+        // generated email/password logic changed.
+        user.name = t.name;
+        user.email = email;
+        user.password = password;
+        user.class = t.classTeacher || '';
+        await user.save();
+        console.log('User updated:', email, '| Password:', password);
+      }
+
+      // Link Teacher to User
+      if (!teacher.user || !teacher.user.equals(user._id)) {
+        teacher.user = user._id;
+        await teacher.save();
+      }
+
+      console.log('Teacher seeded:', teacher.name, '| User:', user.email, '| Class Teacher:', teacher.classTeacher || 'N/A');
     }
 
     // 3. Ensure Class records exist and set class teacher
