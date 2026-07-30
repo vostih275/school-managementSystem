@@ -1,6 +1,8 @@
 const path = require('path');
 const fs = require('fs').promises;
 const puppeteer = require('puppeteer');
+const Teacher = require('../models/Teacher');
+const SchoolSettings = require('../models/SchoolSettings');
 const { percentageToTier, formatTier, formatOverallGrade } = require('../utils/cbcGradingEngine');
 
 // ---------------------------------------------------------------------------
@@ -81,12 +83,22 @@ const COMPETENCY_LABELS = {
     selfEfficacy: 'Self-Efficacy'
 };
 
+// Helper: derive initials from a full name (e.g., "Mary Akiru" -> "M.A.")
+const deriveInitials = (name) => {
+    if (!name || typeof name !== 'string') return '';
+    const cleaned = name.replace(/^(Mr|Mrs|Mdm|Ms|Dr|Prof)\.?\s*/i, '').trim();
+    const parts = cleaned.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    const initials = parts.map(p => p[0].toUpperCase()).join('.');
+    return parts.length > 1 ? initials + '.' : initials;
+};
+
 // ---------------------------------------------------------------------------
 // HTML template - KJSEA Official Format
 // ---------------------------------------------------------------------------
-const buildReportHtml = ({ student, term, academicYear, gradingScale, learningAreas, summary, competencies, classTeacherRemarks, principalRemarks, attendance, logoSrc }) => {
-    const schoolName = process.env.SCHOOL_NAME || 'AIC LOKICHOGGIO GIRLS PRIMARY & JUNIOR';
-    const schoolContact = process.env.SCHOOL_CONTACT || 'Lokichoggio, Turkana County &bull; P.O. Box 1, Lokichoggio &bull; +254 700 000 000';
+const buildReportHtml = ({ student, term, academicYear, gradingScale, learningAreas, summary, competencies, classTeacherRemarks, principalRemarks, attendance, logoSrc, schoolName, schoolContact }) => {
+    const resolvedSchoolName = schoolName || process.env.SCHOOL_NAME || 'AIC LOKICHOGGIO GIRLS PRIMARY & JUNIOR';
+    const resolvedSchoolContact = schoolContact || process.env.SCHOOL_CONTACT || 'Lokichoggio, Turkana County &bull; P.O. Box 1, Lokichoggio &bull; +254 700 000 000';
     const principalName = 'Mrs. Akiru Rebecca Lokeun';
 
     const is4Tier = (gradingScale || summary?.gradingScale) === '4-tier';
@@ -292,8 +304,8 @@ const buildReportHtml = ({ student, term, academicYear, gradingScale, learningAr
             <img src="${logoSrc || '/public/assets/logo.png'}" alt="School Logo" onerror="this.style.display='none'">
         </div>
         <div class="school-meta">
-            <div class="school-name">${schoolName}</div>
-            <div class="school-contact">${schoolContact}</div>
+            <div class="school-name">${resolvedSchoolName}</div>
+            <div class="school-contact">${resolvedSchoolContact}</div>
             <div class="school-motto"><em>&ldquo;Motto: Strive to Excel&rdquo;</em></div>
             <div class="report-title">${reportTypeLabel}</div>
         </div>
@@ -394,7 +406,35 @@ const generateReportPdf = async (reportData, outputPath) => {
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
 
     const logoSrc = await resolveLogoSrc();
-    const html = buildReportHtml({ ...reportData, logoSrc });
+
+    // Load dynamic school settings and subject teacher initials
+    const schoolSettings = await SchoolSettings.findOne().lean() || {};
+    const isJss = /^Grade\s*[7-9]$/i.test(reportData.student?.class || '');
+    const schoolEmail = isJss
+        ? (schoolSettings.juniorSchoolEmail || 'juniorschoolaiclokichoggiogirl@gmail.com')
+        : (schoolSettings.primaryEmail || 'aiclokichoggiogirlsprimaryscho@gmail.com');
+    const resolvedSchoolName = schoolSettings.schoolName || 'AIC LOKICHOGGIO GIRLS PRIMARY & JUNIOR SCHOOL';
+    const resolvedSchoolContact = `${schoolSettings.schoolAddress || 'Lokichoggio, Turkana County'} &bull; Tel: ${schoolSettings.schoolPhone || '0117554435'} &bull; E-mail: ${schoolEmail}`;
+
+    const studentClass = reportData.student?.class || '';
+    const teachers = await Teacher.find({ 'subjects.class': studentClass }).lean();
+    const teacherMap = {};
+    for (const t of teachers) {
+        const relevant = (t.subjects || []).filter(s => (s.class || '') === studentClass);
+        relevant.sort((a, b) => (a.isCoTeacher ? 1 : 0) - (b.isCoTeacher ? 1 : 0));
+        for (const s of relevant) {
+            if (!s.subject) continue;
+            const key = s.subject.toLowerCase();
+            if (!teacherMap[key]) teacherMap[key] = t.name;
+        }
+    }
+
+    const learningAreas = (reportData.learningAreas || []).map(area => ({
+        ...area,
+        teacherInitial: area.teacherInitial || deriveInitials(teacherMap[(area.learningArea || '').toLowerCase()]) || '&mdash;'
+    }));
+
+    const html = buildReportHtml({ ...reportData, logoSrc, schoolName: resolvedSchoolName, schoolContact: resolvedSchoolContact, learningAreas });
     const browser = await getBrowser();
     let page = null;
     try {

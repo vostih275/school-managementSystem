@@ -1,6 +1,8 @@
 const ReportCard = require('../models/ReportCard');
 const User = require('../models/User');
 const Grade = require('../models/Grade');
+const Teacher = require('../models/Teacher');
+const SchoolSettings = require('../models/SchoolSettings');
 const { JUNIOR_SECONDARY_SUBJECTS } = require('../config/subjects');
 const fs = require('fs').promises;
 const fsSync = require('fs');
@@ -39,7 +41,8 @@ const ensureDirectoryExists = async (dir) => {
 // Helper: derive initials from a full name (e.g., "Mary Akiru" -> "M.A.")
 const deriveInitials = (name) => {
     if (!name || typeof name !== 'string') return '';
-    const parts = name.trim().split(/\s+/).filter(Boolean);
+    const cleaned = name.replace(/^(Mr|Mrs|Mdm|Ms|Dr|Prof)\.?\s*/i, '').trim();
+    const parts = cleaned.split(/\s+/).filter(Boolean);
     if (parts.length === 0) return '';
     const initials = parts.map(p => p[0].toUpperCase()).join('.');
     return parts.length > 1 ? initials + '.' : initials;
@@ -406,6 +409,36 @@ const generateComprehensiveReport = async (req, res) => {
             });
         }
 
+        // Load school settings and teacher assignments for this class
+        const schoolSettings = await SchoolSettings.findOne().lean() || {};
+        const isJss = /^Grade\s*[7-9]$/i.test(studentClass);
+        const schoolEmail = isJss
+            ? (schoolSettings.juniorSchoolEmail || 'juniorschoolaiclokichoggiogirl@gmail.com')
+            : (schoolSettings.primaryEmail || 'aiclokichoggiogirlsprimaryscho@gmail.com');
+        const schoolName = schoolSettings.schoolName || 'AIC LOKICHOGGIO GIRLS PRIMARY & JUNIOR SCHOOL';
+        const schoolAddress = schoolSettings.schoolAddress || 'Lokichoggio, Turkana County - P.O. Box 1, Lokichoggio';
+        const schoolPhone = schoolSettings.schoolPhone || '0117554435';
+        const schoolContact = `${schoolAddress} &bull; Tel: ${schoolPhone} &bull; E-mail: ${schoolEmail}`;
+
+        // Find class teacher by classTeacher assignment
+        const classTeacher = await Teacher.findOne({ classTeacher: studentClass }).lean();
+        const classTeacherName = classTeacher ? classTeacher.name : '..........................';
+
+        // Build subject teacher map for the class (prefer non-co-teacher assignments)
+        const teachersInClass = await Teacher.find({ 'subjects.class': studentClass }).lean();
+        const teacherMap = {};
+        for (const t of teachersInClass) {
+            const relevant = (t.subjects || []).filter(s => (s.class || '') === studentClass);
+            relevant.sort((a, b) => (a.isCoTeacher ? 1 : 0) - (b.isCoTeacher ? 1 : 0));
+            for (const s of relevant) {
+                if (!s.subject) continue;
+                const key = s.subject.toLowerCase();
+                if (!teacherMap[key]) {
+                    teacherMap[key] = t.name;
+                }
+            }
+        }
+
         // Identify every student in the same class from User records (more reliable than Grade.class)
         const classStudents = await User.find({
             role: 'student',
@@ -514,7 +547,10 @@ const generateComprehensiveReport = async (req, res) => {
                 subjectAverage: parseFloat(subjectAverage.toFixed(2)),
                 grade: g.grade || '',
                 points: g.points ?? null,
-                teacherInitials: g.teacherInitials || deriveInitials(g.teacher?.name) || '',
+                teacherInitials: deriveInitials(teacherMap[(g.subject || '').toLowerCase()])
+                    || g.teacherInitials
+                    || deriveInitials(g.teacher?.name)
+                    || 'T.T.',
                 improvement: getImprovement(assessments),
                 subjectPosition,
                 totalStudents: subjectClassValues.length
@@ -532,6 +568,9 @@ const generateComprehensiveReport = async (req, res) => {
         res.status(200).json({
             success: true,
             data: {
+                schoolName,
+                schoolContact,
+                classTeacherName,
                 student: {
                     id: student._id,
                     name: student.name || 'Unknown Student',

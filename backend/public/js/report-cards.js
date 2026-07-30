@@ -323,15 +323,9 @@ function buildReportCardHtml(reportData) {
             subjectsCount: subjects.length
         });
 
-        const classTeacherName = (() => {
-            const grade = String(className).match(/\d+/);
-            switch (grade ? grade[0] : '') {
-                case '7': return 'Mrs. Anorita Losidi';
-                case '8': return 'Mr. Clifford Loperito';
-                case '9': return 'Mr. Simiyu Kennedy';
-                default:  return '..........................';
-            }
-        })();
+        const classTeacherName = payload.classTeacherName || '..........................';
+        const schoolName = payload.schoolName || 'AIC LOKICHOGGIO GIRLS JUNIOR SCHOOL';
+        const schoolContact = payload.schoolContact || 'Lokichoggio, Turkana County &bull; P.O. Box 1, Lokichoggio &bull; Tel: 0117554435 &bull; E-mail: aiclokichoggiogirlsprimaryscho@gmail.com';
 
         const isJss = isJuniorSecondaryClass(className);
 
@@ -440,12 +434,8 @@ function buildReportCardHtml(reportData) {
 
                 <!-- Center: School Information -->
                 <div style="flex: 3; text-align: center;">
-                    <h1 style="margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase;">AIC LOKICHOGGIO GIRLS JUNIOR SCHOOL</h1>
-                    <p style="margin: 3px 0 0 0; font-size: 13px;">
-                        P.O BOX 11-30503, LOKICHOGGIO. &nbsp;|&nbsp;
-                        <i class="fas fa-phone" style="font-size:16px; margin-right:5px;"></i> TEL: 0745994826 / 0708474334
-                    </p>
-                    <p style="margin: 1px 0 0 0; font-size: 13px;">E-mail: aiclokichoggiogirls@gmail.com</p>
+                    <h1 style="margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase;">${schoolName}</h1>
+                    <p style="margin: 3px 0 0 0; font-size: 13px;">${schoolContact}</p>
                     <p style="margin: 3px 0 0 0; font-size: 15px; font-style: italic; font-weight: bold;">MOTTO: Strive for excellence</p>
                 </div>
 
