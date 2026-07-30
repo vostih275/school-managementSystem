@@ -5408,7 +5408,11 @@
         const classSelect = document.getElementById('report-class');
         const termSelect = document.getElementById('report-term');
         const panel = document.getElementById('class-analytics-panel');
-        if (!classSelect || !termSelect || !panel) return;
+        if (!classSelect || !termSelect || !panel) {
+            console.error('Class analytics form elements not found', { classSelect, termSelect, panel });
+            showToast('Class analytics form is not ready', 'error');
+            return;
+        }
 
         const className = classSelect.value;
         const term = termSelect.value;
@@ -5525,6 +5529,9 @@
             const analyticsBtn = document.getElementById('view-class-analytics');
             if (analyticsBtn) {
                 analyticsBtn.addEventListener('click', loadClassAnalytics);
+                console.log('Class analytics button wired successfully');
+            } else {
+                console.error('Class analytics button (#view-class-analytics) not found');
             }
 
             // Add event listener for class selection
@@ -5584,6 +5591,9 @@
   <!-- Save marks button handler -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize report card and class analytics bindings
+        initializeReportCardSection();
+
         // Save marks button
         const saveMarksBtn = document.getElementById('save-marks-btn');
         if (saveMarksBtn) {
@@ -5600,7 +5610,7 @@
         }
         
         // Log if report card section was initialized
-        console.log('DOM fully loaded, report card section should be initialized');
+        console.log('DOM fully loaded, report card section initialized');
     });
   </script>
   
