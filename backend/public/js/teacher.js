@@ -4368,7 +4368,7 @@ const API_BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
       statusMessage.className = 'alert alert-info';
       
       // Send the report card to the backend for PDF generation
-      const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/report-cards`, {
+      const response = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/report-cards/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

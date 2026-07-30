@@ -4324,36 +4324,22 @@
             
             console.log('Fetching fees from API...');
             // Fetch all fees with student population to get expected fees
-            const [feesResponse, paymentsResponse] = await Promise.all([
-                fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/fees?populate=student`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                }),
-                // Fetch payments data to calculate actual fees paid
-                fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/payments?status=completed`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                })
-            ]);
+            const feesResponse = await fetch(`${window.API_CONFIG?.BASE_URL || 'http://localhost:5000'}/api/fees?populate=student`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
             
-            if (!feesResponse.ok || !paymentsResponse.ok) {
+            if (!feesResponse.ok) {
                 const feesError = await feesResponse.text().catch(() => '');
-                const paymentsError = await paymentsResponse.text().catch(() => '');
-                console.error('API Errors - Fees:', feesError, 'Payments:', paymentsError);
-                throw new Error(`HTTP error! status: ${feesResponse.status}/${paymentsResponse.status}`);
+                console.error('API Error - Fees:', feesError);
+                throw new Error(`HTTP error! status: ${feesResponse.status}`);
             }
             
-            const [feesData, paymentsData] = await Promise.all([
-                feesResponse.json(),
-                paymentsResponse.json()
-            ]);
+            const feesData = await feesResponse.json();
             
             console.log('Fees API Response:', feesData);
-            console.log('Payments API Response:', paymentsData);
             
             // Process fee records to get expected fees
             const fees = Array.isArray(feesData) ? feesData : (feesData.data || []);
@@ -4364,49 +4350,13 @@
             console.log(JSON.stringify(fees, null, 2));
             console.log('===================');
             
-            // Calculate total expected fees from fee records
+            // Calculate total expected and paid fees from fee records
             fees.forEach(fee => {
-                const feeAmount = parseFloat(fee.fees_per_term || fee.amount || fee.totalFees || 0);
+                const feeAmount = parseFloat(fee.fees_per_term || fee.amount || fee.totalFees || fee.totalAmount || 0);
                 totalExpectedFees += feeAmount;
+                const paidAmount = parseFloat(fee.paidAmount || fee.paid_amount || fee.paid || 0);
+                totalPaidFees += isNaN(paidAmount) ? 0 : paidAmount;
             });
-            
-            // Process payments data directly
-            const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.data || []);
-            console.log('Raw payments data:', JSON.stringify(payments, null, 2));
-            
-            // Sum up all completed/successful payments
-            totalPaidFees = payments.reduce((sum, payment, index) => {
-                console.log(`\n--- Processing Payment ${index + 1} ---`);
-                console.log('Payment object:', payment);
-                
-                // Check if payment has the expected structure
-                if (!payment) {
-                    console.log('Skipping null/undefined payment');
-                    return sum;
-                }
-                
-                // Check status (case insensitive)
-                const status = String(payment.status || '').toLowerCase();
-                const isCompleted = status === 'completed' || status === 'success' || status === 'paid';
-                
-                console.log('Payment status:', status, 'Completed:', isCompleted);
-                
-                if (isCompleted) {
-                    // Try different possible amount fields
-                    const amount = parseFloat(
-                        payment.amount || 
-                        payment.payment_amount || 
-                        payment.amount_paid ||
-                        payment.paidAmount ||
-                        0
-                    );
-                    
-                    console.log('Payment amount found:', amount);
-                    return sum + (isNaN(amount) ? 0 : amount);
-                }
-                
-                return sum;
-            }, 0);
             
             console.log('Total paid calculated:', totalPaidFees);
             

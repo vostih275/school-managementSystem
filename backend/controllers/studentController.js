@@ -88,6 +88,24 @@ exports.getStudentsByClass = async (req, res) => {
     }
 };
 
+// ✅ Get Student Count
+exports.getStudentCount = async (req, res) => {
+    try {
+        const count = await User.countDocuments({ role: 'student' });
+        res.json({
+            success: true,
+            count
+        });
+    } catch (err) {
+        console.error('Error in getStudentCount:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to count students',
+            error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+        });
+    }
+};
+
 // ✅ Get All Students
 exports.getStudents = async (req, res) => {
     try {

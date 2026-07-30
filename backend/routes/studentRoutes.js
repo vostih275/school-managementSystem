@@ -5,6 +5,7 @@ const uploadCloudinary = require('../config/cloudinary');
 const { 
     getStudents, 
     getStudentsByClass,
+    getStudentCount,
     getStudentProfile, 
     updateStudentProfile, 
     changePassword,
@@ -15,6 +16,9 @@ const router = express.Router();
 
 // Get students by class
 router.get('/class/:className', protect, getStudentsByClass);
+
+// Get student count
+router.get('/count', protect, authorize('admin', 'teacher'), getStudentCount);
 
 // Change Password
 router.put('/change-password', protect, (req, res) => {

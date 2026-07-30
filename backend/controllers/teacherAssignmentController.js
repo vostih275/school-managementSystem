@@ -2,6 +2,17 @@ const Teacher = require('../models/Teacher');
 const User = require('../models/User');
 const { generateTeacherCredentials } = require('../utils/teacherCredentials');
 
+// GET /api/teachers/count
+exports.getTeacherCount = async (req, res) => {
+  try {
+    const count = await User.countDocuments({ role: 'teacher' });
+    res.json({ success: true, count });
+  } catch (err) {
+    console.error('Error in getTeacherCount:', err);
+    res.status(500).json({ success: false, message: 'Failed to count teachers' });
+  }
+};
+
 // GET /api/teachers
 exports.getAllTeachers = async (req, res) => {
   try {

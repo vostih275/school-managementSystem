@@ -3,6 +3,7 @@ const { protect, authorize } = require('../middleware/auth');
 const { getTeacherProfile, updateTeacherProfile } = require('../controllers/teacherController');
 const {
   getAllTeachers,
+  getTeacherCount,
   getMyAssignments,
   getTeachersByClass,
   createTeacher,
@@ -19,6 +20,9 @@ router.get('/profile', protect, authorize('Teacher'), getTeacherProfile);
 
 // Update Teacher Profile
 router.put('/profile', protect, authorize('Teacher'), updateTeacherProfile);
+
+// GET /api/teachers/count
+router.get('/count', protect, authorize('admin', 'teacher'), getTeacherCount);
 
 // @route   GET /api/teachers/:id/classes
 // @desc    Return the list of class names assigned to a teacher.
