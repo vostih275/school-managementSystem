@@ -3,6 +3,7 @@ const { protect, authorize } = require('../middleware/auth');
 const {
   getTemplate,
   getTimetable,
+  getTeacherTimetable,
   createSlot,
   updateSlot,
   deleteSlot,
@@ -15,6 +16,9 @@ router.use(protect);
 
 // Get the base period template and rules
 router.get('/template', getTemplate);
+
+// Logged-in teacher's personal timetable across all grades
+router.get('/teacher/me', authorize('teacher', 'admin'), getTeacherTimetable);
 
 // Class-specific timetable
 router.get('/:className', getTimetable);

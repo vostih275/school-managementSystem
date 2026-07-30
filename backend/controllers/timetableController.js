@@ -1,4 +1,5 @@
 const TimetableSlot = require('../models/TimetableSlot');
+const Teacher = require('../models/Teacher');
 
 // 40-minute lessons: Lesson 1 7:30-8:10, ... Lesson 9 14:40-15:20
 // Remedial: 15:20-16:00 (lessonNumber 10)
@@ -101,6 +102,51 @@ exports.deleteSlot = async (req, res) => {
   } catch (err) {
     console.error('Error deleting timetable slot:', err);
     res.status(500).json({ success: false, message: 'Server error deleting slot' });
+  }
+};
+
+// GET /api/timetable/teacher/me
+exports.getTeacherTimetable = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id;
+
+    const teacher = await Teacher.findOne({ user: userId }).lean();
+    const subjectSet = new Set();
+    const classSet = new Set();
+    if (teacher) {
+      (teacher.subjects || []).forEach(s => {
+        if (s.subject) subjectSet.add(s.subject.toLowerCase());
+        if (s.class) classSet.add(s.class);
+      });
+    }
+
+    const classList = Array.from(classSet);
+    const query = { teacher: userId };
+    if (classList.length > 0) {
+      query.$or = [
+        { teacher: userId },
+        { class: { $in: classList } }
+      ];
+    }
+
+    const rawSlots = await TimetableSlot.find(query)
+      .populate('teacher', 'name')
+      .sort({ day: 1, lessonNumber: 1 })
+      .lean();
+
+    const slots = rawSlots.filter(slot =>
+      String(slot.teacher?._id || slot.teacher) === String(userId) ||
+      (subjectSet.size > 0 && subjectSet.has((slot.subject || '').toLowerCase()))
+    );
+
+    res.json({
+      success: true,
+      teacher: teacher?.name || req.user?.name,
+      slots
+    });
+  } catch (err) {
+    console.error('Error fetching teacher timetable:', err);
+    res.status(500).json({ success: false, message: 'Server error fetching teacher timetable' });
   }
 };
 
