@@ -40,7 +40,9 @@ exports.getTemplate = (req, res) => {
 // GET /api/timetable/:className
 exports.getTimetable = async (req, res) => {
   try {
-    const slots = await TimetableSlot.find({ class: req.params.className }).sort({ day: 1, lessonNumber: 1 });
+    const slots = await TimetableSlot.find({ class: req.params.className })
+      .populate('teacher', 'name')
+      .sort({ day: 1, lessonNumber: 1 });
     res.json({ success: true, class: req.params.className, slots });
   } catch (err) {
     console.error('Error fetching timetable:', err);

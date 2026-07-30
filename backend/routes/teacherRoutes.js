@@ -24,6 +24,9 @@ router.put('/profile', protect, authorize('Teacher'), updateTeacherProfile);
 // GET /api/teachers/count
 router.get('/count', protect, authorize('admin', 'teacher'), getTeacherCount);
 
+// GET /api/teachers
+router.get('/', protect, authorize('admin', 'teacher'), getAllTeachers);
+
 // @route   GET /api/teachers/:id/classes
 // @desc    Return the list of class names assigned to a teacher.
 //          First tries the Class collection (teacherInCharge); falls back to
@@ -52,14 +55,7 @@ router.get('/:id/classes', protect, authorize('Teacher', 'admin'), async (req, r
             classNames = await User.find({ role: 'student' }).distinct('class');
             classNames = classNames.filter(Boolean).sort();
         }
-// Teacher assignment routes
-router.get('/', protect, authorize('admin', 'Teacher'), getAllTeachers);
-router.get('/assignments/me', protect, authorize('Teacher', 'admin'), getMyAssignments);
-router.get('/class/:className', protect, getTeachersByClass);
-router.post('/', protect, authorize('admin'), createTeacher);
-router.put('/:id', protect, authorize('admin'), updateTeacher);
-router.delete('/:id', protect, authorize('admin'), deleteTeacher);
-
+// (module-level teacher assignment routes are declared above)
 
         res.json({ success: true, classes: classNames });
     } catch (error) {
