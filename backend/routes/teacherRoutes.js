@@ -1,6 +1,14 @@
 const express = require('express');
 const { protect, authorize } = require('../middleware/auth');
 const { getTeacherProfile, updateTeacherProfile } = require('../controllers/teacherController');
+const {
+  getAllTeachers,
+  getMyAssignments,
+  getTeachersByClass,
+  createTeacher,
+  updateTeacher,
+  deleteTeacher
+} = require('../controllers/teacherAssignmentController');
 const Class = require('../models/Class');
 const User = require('../models/User');
 
@@ -40,6 +48,14 @@ router.get('/:id/classes', protect, authorize('Teacher', 'admin'), async (req, r
             classNames = await User.find({ role: 'student' }).distinct('class');
             classNames = classNames.filter(Boolean).sort();
         }
+// Teacher assignment routes
+router.get('/', protect, authorize('admin', 'Teacher'), getAllTeachers);
+router.get('/assignments/me', protect, authorize('Teacher', 'admin'), getMyAssignments);
+router.get('/class/:className', protect, getTeachersByClass);
+router.post('/', protect, authorize('admin'), createTeacher);
+router.put('/:id', protect, authorize('admin'), updateTeacher);
+router.delete('/:id', protect, authorize('admin'), deleteTeacher);
+
 
         res.json({ success: true, classes: classNames });
     } catch (error) {

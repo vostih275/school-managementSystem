@@ -104,6 +104,8 @@ app.use('/api/attendance', require('./routes/attendanceRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/students', require('./routes/studentRoutes'));
 app.use('/api/teachers', require('./routes/teacherRoutes'));
+app.use('/api/settings', require('./routes/settingsRoutes'));
+app.use('/api/timetable', require('./routes/timetableRoutes'));
 app.use('/api/library', require('./routes/library'));
 app.use('/api/backups', require('./routes/backups'));
 app.use('/api/cbc', require('./routes/cbcRoutes'));
