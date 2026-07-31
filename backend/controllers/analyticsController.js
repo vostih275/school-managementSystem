@@ -33,11 +33,25 @@ exports.getClassAnalytics = asyncHandler(async (req, res, next) => {
                 className,
                 term,
                 year: recordYear,
+                scale: detectGradingScale(className),
+                studentCount: 0,
                 students: [],
-                subjectSummaries: []
+                subjectSummaries: [],
+                subjectPerformance: [],
+                topAllRounders: [],
+                mostImprovedStudent: null,
+                bestPerformingSubject: null,
+                improvementTrends: [],
+                cbcDistribution: { excellent: 0, average: 0, weak: 0, total: 0, percentages: { excellent: 0, average: 0, weak: 0 } }
             }
         });
     }
+
+    // Fetch all marks for the year to support term-over-term trends
+    const yearMarks = await Grade.find({
+        class: className,
+        year: recordYear
+    }).lean();
 
     // Group current marks by student
     const byStudent = {};
@@ -132,6 +146,88 @@ exports.getClassAnalytics = asyncHandler(async (req, res, next) => {
         candidateCount: stats.count
     }));
 
+    // Subject performance and top student per subject
+    const topBySubject = {};
+    for (const mark of currentMarks) {
+        const subject = mark.subject;
+        const score = mark.subjectAverage || 0;
+        if (!topBySubject[subject] || score > topBySubject[subject].score) {
+            topBySubject[subject] = {
+                topStudent: mark.studentName || mark.student?.name || 'Unknown',
+                score
+            };
+        }
+    }
+
+    const subjectPerformance = subjectSummaryList.map(s => ({
+        subject: s.subject,
+        averageScore: s.average,
+        topStudent: topBySubject[s.subject]?.topStudent || 'Unknown',
+        topScore: topBySubject[s.subject]?.score || 0
+    }));
+
+    // Top 5 all-round performers
+    const topAllRounders = studentResults.slice(0, 5);
+
+    // Most improved student
+    const rankedByImprovement = studentResults
+        .filter(s => s.improvement !== null)
+        .sort((a, b) => (b.improvement || 0) - (a.improvement || 0));
+    const mostImprovedStudent = rankedByImprovement[0] || null;
+
+    // Best performing subject
+    const bestPerformingSubject = subjectPerformance.length
+        ? subjectPerformance.reduce((best, s) => s.averageScore > best.averageScore ? s : best)
+        : null;
+
+    // Term-over-term averages per subject for the year
+    const termSet = ['Term 1', 'Term 2', 'Term 3'];
+    const termAverages = {};
+    for (const mark of yearMarks) {
+        if (!termAverages[mark.subject]) {
+            termAverages[mark.subject] = {};
+            for (const t of termSet) {
+                termAverages[mark.subject][t] = { total: 0, count: 0 };
+            }
+        }
+        const t = mark.term;
+        if (termAverages[mark.subject][t]) {
+            termAverages[mark.subject][t].total += mark.subjectAverage || 0;
+            termAverages[mark.subject][t].count += 1;
+        }
+    }
+
+    const improvementTrends = Object.keys(termAverages).map(subject => ({
+        subject,
+        term1: termAverages[subject]['Term 1'].count
+            ? parseFloat((termAverages[subject]['Term 1'].total / termAverages[subject]['Term 1'].count).toFixed(2))
+            : 0,
+        term2: termAverages[subject]['Term 2'].count
+            ? parseFloat((termAverages[subject]['Term 2'].total / termAverages[subject]['Term 2'].count).toFixed(2))
+            : 0,
+        term3: termAverages[subject]['Term 3'].count
+            ? parseFloat((termAverages[subject]['Term 3'].total / termAverages[subject]['Term 3'].count).toFixed(2))
+            : 0
+    }));
+
+    // CBC performance distribution from overall student averages
+    const cbcDistribution = { excellent: 0, average: 0, weak: 0, total: studentResults.length };
+    for (const student of studentResults) {
+        const avg = student.average;
+        if (avg >= 80) {
+            cbcDistribution.excellent += 1;
+        } else if (avg >= 50) {
+            cbcDistribution.average += 1;
+        } else {
+            cbcDistribution.weak += 1;
+        }
+    }
+    cbcDistribution.percentages = {
+        excellent: parseFloat(((cbcDistribution.excellent / cbcDistribution.total) * 100 || 0).toFixed(2)),
+        average: parseFloat(((cbcDistribution.average / cbcDistribution.total) * 100 || 0).toFixed(2)),
+        weak: parseFloat(((cbcDistribution.weak / cbcDistribution.total) * 100 || 0).toFixed(2))
+    };
+
     res.status(200).json({
         success: true,
         data: {
@@ -142,7 +238,13 @@ exports.getClassAnalytics = asyncHandler(async (req, res, next) => {
             scale: detectGradingScale(className),
             studentCount: studentResults.length,
             students: studentResults,
-            subjectSummaries: subjectSummaryList
+            subjectSummaries: subjectSummaryList,
+            subjectPerformance,
+            topAllRounders,
+            mostImprovedStudent,
+            bestPerformingSubject,
+            improvementTrends,
+            cbcDistribution
         }
     });
 });
