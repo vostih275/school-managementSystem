@@ -34,6 +34,7 @@ exports.getClassAnalytics = asyncHandler(async (req, res, next) => {
                 term,
                 year: recordYear,
                 scale: detectGradingScale(className),
+                isInsufficientDataForTrend: true,
                 studentCount: 0,
                 students: [],
                 subjectSummaries: [],
@@ -52,6 +53,9 @@ exports.getClassAnalytics = asyncHandler(async (req, res, next) => {
         class: className,
         year: recordYear
     }).lean();
+
+    const availableTerms = [...new Set(yearMarks.map(m => m.term))];
+    const isInsufficientDataForTrend = availableTerms.length < 2;
 
     // Group current marks by student
     const byStudent = {};
@@ -102,7 +106,7 @@ exports.getClassAnalytics = asyncHandler(async (req, res, next) => {
         const average = count ? total / count : 0;
 
         const prev = previousAverages[student.studentId];
-        const previousAverage = prev && prev.count ? prev.total / prev.count : null;
+        const previousAverage = !isInsufficientDataForTrend && prev && prev.count ? prev.total / prev.count : null;
         const improvement = previousAverage !== null ? (average - previousAverage) : null;
 
         return {
@@ -173,7 +177,7 @@ exports.getClassAnalytics = asyncHandler(async (req, res, next) => {
     const rankedByImprovement = studentResults
         .filter(s => s.improvement !== null)
         .sort((a, b) => (b.improvement || 0) - (a.improvement || 0));
-    const mostImprovedStudent = rankedByImprovement[0] || null;
+    const mostImprovedStudent = isInsufficientDataForTrend ? null : (rankedByImprovement[0] || null);
 
     // Best performing subject
     const bestPerformingSubject = subjectPerformance.length
@@ -197,7 +201,7 @@ exports.getClassAnalytics = asyncHandler(async (req, res, next) => {
         }
     }
 
-    const improvementTrends = Object.keys(termAverages).map(subject => ({
+    const improvementTrends = isInsufficientDataForTrend ? [] : Object.keys(termAverages).map(subject => ({
         subject,
         term1: termAverages[subject]['Term 1'].count
             ? parseFloat((termAverages[subject]['Term 1'].total / termAverages[subject]['Term 1'].count).toFixed(2))
@@ -236,6 +240,7 @@ exports.getClassAnalytics = asyncHandler(async (req, res, next) => {
             year: recordYear,
             previousTerm,
             scale: detectGradingScale(className),
+            isInsufficientDataForTrend,
             studentCount: studentResults.length,
             students: studentResults,
             subjectSummaries: subjectSummaryList,

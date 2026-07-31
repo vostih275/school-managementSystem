@@ -5451,6 +5451,7 @@
             const improvementTrends = data.improvementTrends || [];
             const cbcDistribution = data.cbcDistribution || { excellent: 0, average: 0, weak: 0 };
             const topAllRounders = data.topAllRounders || [];
+            const isInsufficientDataForTrend = data.isInsufficientDataForTrend || (data.improvementTrends && data.improvementTrends.length < 2);
 
             panel.innerHTML = `
                 <div id="analytics-dashboard" style="max-width: 100%;">
@@ -5469,8 +5470,8 @@
                         <div class="col-md-6" style="padding-right:0; padding-left:10px; margin-bottom:15px;">
                             <div style="background:linear-gradient(135deg,#059669,#047857); color:#fff; padding:20px; border-radius:8px; min-height:120px;">
                                 <div style="font-size:0.9rem; opacity:0.9;">Most Improved Student</div>
-                                <div style="font-size:1.5rem; font-weight:700;">${mostImproved ? mostImproved.name : 'N/A'}</div>
-                                <div style="font-size:0.95rem;">Improvement: ${mostImproved && mostImproved.improvement !== null ? (mostImproved.improvement >= 0 ? '+' : '') + mostImproved.improvement + '%' : '-'}</div>
+                                <div style="font-size:1.5rem; font-weight:700;">${isInsufficientDataForTrend ? 'Requires at least 2 exams' : (mostImproved ? mostImproved.name : 'N/A')}</div>
+                                <div style="font-size:0.95rem;">${isInsufficientDataForTrend ? 'Insufficient data' : ('Improvement: ' + (mostImproved && mostImproved.improvement !== null ? (mostImproved.improvement >= 0 ? '+' : '') + mostImproved.improvement + '%' : '-'))}</div>
                             </div>
                         </div>
                     </div>
@@ -5494,12 +5495,21 @@
                     </div>
                     <div class="row" style="margin-bottom:20px;">
                         <div class="col-md-12">
-                            <div style="background:#fff; padding:15px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.08); height:320px; max-height:35vh; display:flex; flex-direction:column;">
-                                <h5 style="margin-top:0; margin-bottom:15px;">Term-over-Term Subject Trends</h5>
-                                <div style="flex:1; position:relative; min-height:0;">
-                                    <canvas id="trend-line-chart" style="display:block; width:100%; height:100%;"></canvas>
+                            ${isInsufficientDataForTrend ? `
+                                <div style="background:#fff; padding:15px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.08); min-height:220px; display:flex; flex-direction:column;">
+                                    <h5 style="margin-top:0; margin-bottom:15px;">Term-over-Term Subject Trends</h5>
+                                    <div style="flex:1; display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:1rem;">
+                                        More data needed for trend analysis
+                                    </div>
                                 </div>
-                            </div>
+                            ` : `
+                                <div style="background:#fff; padding:15px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.08); height:320px; max-height:35vh; display:flex; flex-direction:column;">
+                                    <h5 style="margin-top:0; margin-bottom:15px;">Term-over-Term Subject Trends</h5>
+                                    <div style="flex:1; position:relative; min-height:0;">
+                                        <canvas id="trend-line-chart" style="display:block; width:100%; height:100%;"></canvas>
+                                    </div>
+                                </div>
+                            `}
                         </div>
                     </div>
                     <div class="row">
@@ -5512,6 +5522,7 @@
                                             <th style="padding:10px; border:1px solid #ddd;">#</th>
                                             <th style="padding:10px; border:1px solid #ddd; text-align:left;">Student</th>
                                             <th style="padding:10px; border:1px solid #ddd; text-align:center;">Average</th>
+                                            <th style="padding:10px; border:1px solid #ddd; text-align:center;">Improvement</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -5520,6 +5531,7 @@
                                                 <td style="padding:10px; border:1px solid #ddd;">${i + 1}</td>
                                                 <td style="padding:10px; border:1px solid #ddd;">${s.name}</td>
                                                 <td style="padding:10px; border:1px solid #ddd; text-align:center;">${s.average}%</td>
+                                                <td style="padding:10px; border:1px solid #ddd; text-align:center;">${isInsufficientDataForTrend ? '-' : (s.improvement !== null ? (s.improvement >= 0 ? '+' : '') + s.improvement + '%' : '-')}</td>
                                             </tr>
                                         `).join('')}
                                     </tbody>
@@ -5536,7 +5548,9 @@
             });
 
             createSubjectBarChart(subjectPerformance);
-            createTrendLineChart(improvementTrends);
+            if (!isInsufficientDataForTrend) {
+                createTrendLineChart(improvementTrends);
+            }
             createCBCPieChart(cbcDistribution);
         } catch (error) {
             console.error('Class analytics error:', error);
