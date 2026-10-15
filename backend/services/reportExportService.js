@@ -81,35 +81,51 @@ const buildReportCardWorkbook = (data) => {
 const buildMeritListWorkbook = (merit) => {
     const wb = XLSX.utils.book_new();
     const rows = [];
+    const merges = [];
 
     rows.push([safe(merit.schoolName)]);
     rows.push(['TERM EXAMINATION & ASSESSMENT MERIT SCHEDULE']);
     rows.push([`Class: ${safe(merit.className)}`, `Term: ${safe(merit.term)}`, `Year: ${safe(merit.year)}`]);
     rows.push([]);
 
-    const subjectKeys = (merit.subjects || []).map(s => s.key);
-    const header = ['Pos.', 'Student Name', 'Adm. No.', 'Assessment No. (UPI)'];
-    for (const s of merit.subjects || []) header.push(s.label || s.key);
-    header.push('Total Marks', 'Mean Score', 'Performance Indicator');
-    rows.push(header);
+    // ---- KNEC grid header: two rows ----
+    const subjects = merit.subjects || [];
+    const headerTop = ['Student Name', 'Adm. No.', 'Assessment No. (UPI)'];
+    const headerSub = ['', '', ''];
+    subjects.forEach(s => {
+        headerTop.push(`${s.code ? s.code + ' ' : ''}${s.short || s.label}`, '');
+        headerSub.push('Mark', 'L.P');
+    });
+    headerTop.push('TOTAL', 'AG.P', 'LEVEL', 'POS');
+    headerSub.push('', '', '', '');
+    rows.push(headerTop, headerSub);
 
+    const h1 = rows.length - 2; // 0-based index of first header row
+    // Merge identity + summary cells vertically across the two header rows
+    const fixedCols = [0, 1, 2, 3 + subjects.length * 2, 4 + subjects.length * 2, 5 + subjects.length * 2, 6 + subjects.length * 2];
+    fixedCols.forEach(c => merges.push({ s: { r: h1, c }, e: { r: h1 + 1, c } }));
+    // Merge each subject pair horizontally
+    subjects.forEach((s, i) => {
+        const c = 3 + i * 2;
+        merges.push({ s: { r: h1, c }, e: { r: h1, c: c + 1 } });
+    });
+
+    // ---- Data rows ----
     for (const st of merit.students || []) {
-        const row = [
-            st.position || '',
-            safe(st.name),
-            safe(st.admissionNumber),
-            safe(st.assessmentNumber)
-        ];
-        for (const key of subjectKeys) row.push(num(st.scores?.[key]));
-        row.push(num(st.totalMarks), num(st.meanScore), safe(st.indicator?.label || st.indicator?.code));
+        const row = [safe(st.name), safe(st.admissionNumber), safe(st.assessmentNumber)];
+        for (const s of subjects) {
+            row.push(num(st.scores?.[s.key]), num(st.lp?.[s.key]));
+        }
+        row.push(num(st.totalMarks), num(st.aggregatePoints), safe(st.level), st.position || '');
         rows.push(row);
     }
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!merges'] = merges;
     ws['!cols'] = [
-        { wch: 6 }, { wch: 28 }, { wch: 10 }, { wch: 20 },
-        ...subjectKeys.map(() => ({ wch: 9 })),
-        { wch: 12 }, { wch: 11 }, { wch: 24 }
+        { wch: 28 }, { wch: 10 }, { wch: 20 },
+        ...subjects.flatMap(() => [{ wch: 7 }, { wch: 6 }]),
+        { wch: 9 }, { wch: 7 }, { wch: 9 }, { wch: 6 }
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, 'Merit List');

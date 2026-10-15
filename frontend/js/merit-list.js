@@ -94,50 +94,57 @@ function renderMeritList(merit) {
         return;
     }
 
+    // KNEC grid: top row = paper code + short name (spans Mark | L.P), second row = sub-columns
     const subjectHeaderCells = subjects
-        .map(s => `<th style="padding:8px; border:1px solid #ddd; text-align:center; white-space:nowrap;">${esc(s.label)}</th>`)
+        .map(s => `<th colspan="2" style="padding:6px 4px; border:1px solid #143a66; text-align:center; white-space:nowrap;"><span style="color:#c9a227;">${esc(s.code || '')}</span> ${esc(s.short || s.label)}</th>`)
+        .join('');
+    const subHeaderCells = subjects
+        .map(() => '<th style="padding:4px; border:1px solid #143a66; text-align:center; background:#1d4e89; font-size:10px;">Mark</th><th style="padding:4px; border:1px solid #143a66; text-align:center; background:#1d4e89; font-size:10px;">L.P</th>')
         .join('');
 
     const bodyRows = merit.students.map((st, i) => {
         const bg = i % 2 ? '#f7f9fc' : 'transparent';
         const scoreCells = subjects.map(s => {
             const v = st.scores?.[s.key];
-            return `<td style="padding:8px; border:1px solid #ddd; text-align:center;">${typeof v === 'number' ? v : '<span style="color:#9ca3af">—</span>'}</td>`;
+            const p = st.lp?.[s.key];
+            return `<td style="padding:6px; border:1px solid #ddd; text-align:center;">${typeof v === 'number' ? v : '<span style="color:#9ca3af">—</span>'}</td>` +
+                   `<td style="padding:6px; border:1px solid #ddd; text-align:center; color:#143a66;">${p !== null && p !== undefined ? p : '<span style="color:#9ca3af">—</span>'}</td>`;
         }).join('');
-        const ind = st.indicator;
-        const badge = ind
-            ? `<span style="display:inline-block; padding:2px 8px; border-radius:4px; font-weight:700; font-size:11px; color:#fff; background:${MERIT_BADGE_COLORS[(ind.code || '').substring(0, 2)] || '#6b7280'};">${esc(ind.code)}</span> <span style="font-size:11px; color:#374151;">${esc(ind.label)}</span>`
+        const lvKey = String(st.level || '').replace(/[^A-Za-z]/g, '').substring(0, 2);
+        const badge = st.level
+            ? `<span style="display:inline-block; padding:2px 8px; border-radius:4px; font-weight:700; font-size:11px; color:#fff; background:${MERIT_BADGE_COLORS[lvKey] || '#6b7280'};">${esc(st.level)}</span>`
             : '<span style="color:#9ca3af">—</span>';
         return `<tr style="background:${bg};">
-            <td style="padding:8px; border:1px solid #ddd; text-align:center; font-weight:700;">${st.position || '—'}</td>
-            <td style="padding:8px; border:1px solid #ddd; font-weight:600; white-space:nowrap;">${esc(st.name)}</td>
-            <td style="padding:8px; border:1px solid #ddd; text-align:center;">${esc(st.admissionNumber) || '—'}</td>
-            <td style="padding:8px; border:1px solid #ddd; text-align:center;">${esc(st.assessmentNumber) || '—'}</td>
+            <td style="padding:6px; border:1px solid #ddd; font-weight:600; white-space:nowrap;">${esc(st.name)}</td>
+            <td style="padding:6px; border:1px solid #ddd; text-align:center;">${esc(st.admissionNumber) || '—'}</td>
+            <td style="padding:6px; border:1px solid #ddd; text-align:center;">${esc(st.assessmentNumber) || '—'}</td>
             ${scoreCells}
-            <td style="padding:8px; border:1px solid #ddd; text-align:center; font-weight:700;">${st.totalMarks || '—'}</td>
-            <td style="padding:8px; border:1px solid #ddd; text-align:center; font-weight:700;">${st.meanScore !== null && st.meanScore !== undefined ? st.meanScore : '—'}</td>
-            <td style="padding:8px; border:1px solid #ddd; white-space:nowrap;">${badge}</td>
+            <td style="padding:6px; border:1px solid #ddd; text-align:center; font-weight:700;">${st.totalMarks || '—'}</td>
+            <td style="padding:6px; border:1px solid #ddd; text-align:center; font-weight:700;">${st.aggregatePoints !== null && st.aggregatePoints !== undefined ? st.aggregatePoints : '—'}</td>
+            <td style="padding:6px; border:1px solid #ddd; text-align:center;">${badge}</td>
+            <td style="padding:6px; border:1px solid #ddd; text-align:center; font-weight:700;">${st.position || '—'}</td>
         </tr>`;
     }).join('');
 
     resultsEl.innerHTML = `
-        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
             <thead>
                 <tr style="background:#143a66; color:#fff;">
-                    <th style="padding:8px; border:1px solid #143a66; text-align:center;">Pos.</th>
-                    <th style="padding:8px; border:1px solid #143a66; text-align:left;">Student Name</th>
-                    <th style="padding:8px; border:1px solid #143a66; text-align:center;">Adm. No.</th>
-                    <th style="padding:8px; border:1px solid #143a66; text-align:center;">Assessment No. (UPI)</th>
+                    <th rowspan="2" style="padding:8px; border:1px solid #143a66; text-align:left;">Student Name</th>
+                    <th rowspan="2" style="padding:8px; border:1px solid #143a66; text-align:center;">Adm. No.</th>
+                    <th rowspan="2" style="padding:8px; border:1px solid #143a66; text-align:center;">Assessment No. (UPI)</th>
                     ${subjectHeaderCells}
-                    <th style="padding:8px; border:1px solid #143a66; text-align:center;">Total</th>
-                    <th style="padding:8px; border:1px solid #143a66; text-align:center;">Mean</th>
-                    <th style="padding:8px; border:1px solid #143a66; text-align:left;">Performance Indicator</th>
+                    <th rowspan="2" style="padding:8px; border:1px solid #143a66; text-align:center;">TOTAL</th>
+                    <th rowspan="2" style="padding:8px; border:1px solid #143a66; text-align:center;">AG.P</th>
+                    <th rowspan="2" style="padding:8px; border:1px solid #143a66; text-align:center;">LEVEL</th>
+                    <th rowspan="2" style="padding:8px; border:1px solid #143a66; text-align:center;">POS</th>
                 </tr>
+                <tr>${subHeaderCells}</tr>
             </thead>
             <tbody>${bodyRows}</tbody>
         </table>
         <p style="margin-top:10px; font-size:11px; color:#6b7280;">
-            Indicators: EE = Exceeding Expectation, ME = Meeting Expectation, AE = Approaching Expectation, BE = Below Expectation.
+            L.P = Level Points (E.E1 = 8, E.E2 = 7, M.E1 = 6, M.E2 = 5, A.E1 = 4, A.E2 = 3, B.E1 = 2, B.E2 = 1). AG.P = total Level Points. LEVEL: E.E = Exceeding Expectation, M.E = Meeting Expectation, A.E = Approaching Expectation, B.E = Below Expectation.
         </p>`;
 }
 
