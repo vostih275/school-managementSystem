@@ -9,6 +9,13 @@ const { v4: uuidv4 } = require('uuid');
 const puppeteer = null;
 const User = require('../models/User');
 
+// Helper: parse a 4-digit academic year from "2026", "2026-2027", etc.
+// Returns null when no valid year is present.
+const parseAcademicYear = (raw) => {
+    const match = String(raw ?? '').match(/\d{4}/);
+    return match ? Number(match[0]) : null;
+};
+
 // Helper: derive initials from a full name (e.g., "Mary Akiru" -> "M.A.")
 const deriveInitials = (name) => {
     if (!name || typeof name !== 'string') return '';
@@ -50,7 +57,7 @@ const generatePdfFromHtml = async (html, outputPath) => {
 // @access  Private/Teacher
 exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
     const { studentId } = req.params;
-    const { term, year, subjects, remarks } = req.body;
+    const { term, year, academicYear, subjects, remarks } = req.body;
 
     // Validate input
     if (!term || !subjects || !Array.isArray(subjects) || subjects.length === 0) {
@@ -66,7 +73,7 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
     // Save each subject's marks
     const savedMarks = [];
     const currentYear = new Date().getFullYear();
-    const recordYear = Number(year) || currentYear;
+    const recordYear = parseAcademicYear(academicYear) || parseAcademicYear(year) || currentYear;
     
     // Track all subjects being saved
     const subjectsData = [];
@@ -251,8 +258,8 @@ exports.saveStudentMarks = asyncHandler(async (req, res, next) => {
 // @route   POST /api/v1/marks
 // @access  Private/Teacher
 exports.saveMarks = asyncHandler(async (req, res, next) => {
-    const { student, studentName, class: className, subject, term, year, assessments, comments, teacherInitials } = req.body;
-    const recordYear = Number(year) || new Date().getFullYear();
+    const { student, studentName, class: className, subject, term, year, academicYear, assessments, comments, teacherInitials } = req.body;
+    const recordYear = parseAcademicYear(academicYear) || parseAcademicYear(year) || new Date().getFullYear();
     const fallbackInitials = deriveInitials(req.user?.name || '');
 
     // Check if marks already exist for this student, subject, term, and year
@@ -436,11 +443,12 @@ exports.saveMarks = asyncHandler(async (req, res, next) => {
 // @route   GET /api/v1/marks/student/:studentId
 // @access  Private
 exports.getStudentMarks = asyncHandler(async (req, res, next) => {
-    const { term, year } = req.query;
+    const { term, year, academicYear } = req.query;
     const query = { student: req.params.studentId };
 
     if (term) query.term = term;
-    if (year) query.year = Number(year);
+    const recordYear = parseAcademicYear(academicYear) || parseAcademicYear(year);
+    if (recordYear) query.year = recordYear;
 
     const marks = await Grade.find(query)
         .populate('student', 'name email')
@@ -457,11 +465,12 @@ exports.getStudentMarks = asyncHandler(async (req, res, next) => {
 // @route   GET /api/v1/marks/class/:className
 // @access  Private/Teacher
 exports.getClassMarks = asyncHandler(async (req, res, next) => {
-    const { term, year } = req.query;
+    const { term, year, academicYear } = req.query;
     const query = { class: req.params.className };
 
     if (term) query.term = term;
-    if (year) query.year = Number(year);
+    const recordYear = parseAcademicYear(academicYear) || parseAcademicYear(year);
+    if (recordYear) query.year = recordYear;
 
     const marks = await Grade.find(query)
         .populate('student', 'name email')
@@ -478,11 +487,12 @@ exports.getClassMarks = asyncHandler(async (req, res, next) => {
 // @route   GET /api/v1/marks/subject/:subject
 // @access  Private/Teacher
 exports.getSubjectMarks = asyncHandler(async (req, res, next) => {
-    const { term, year } = req.query;
+    const { term, year, academicYear } = req.query;
     const query = { subject: req.params.subject };
 
     if (term) query.term = term;
-    if (year) query.year = Number(year);
+    const recordYear = parseAcademicYear(academicYear) || parseAcademicYear(year);
+    if (recordYear) query.year = recordYear;
 
     const marks = await Grade.find(query)
         .populate('student', 'name email')
@@ -524,16 +534,16 @@ exports.finalizeMarks = asyncHandler(async (req, res, next) => {
 // @access  Private
 exports.getStudentReportCard = asyncHandler(async (req, res, next) => {
     try {
-        const { term, year } = req.query;
+        const { term, year, academicYear } = req.query;
 
-        if (!term || !year) {
+        if (!term || !(year || academicYear)) {
             return res.status(400).json({
                 success: false,
                 message: 'Please provide both term and year'
             });
         }
 
-        const recordYear = Number(year);
+        const recordYear = parseAcademicYear(academicYear) || parseAcademicYear(year);
 
         // First, get the student information
         const student = await User.findById(req.params.studentId)
@@ -605,7 +615,7 @@ exports.getStudentReportCard = asyncHandler(async (req, res, next) => {
 // @access  Private/Teacher
 exports.deleteStudentMarks = asyncHandler(async (req, res, next) => {
     const { studentId, term } = req.params;
-    const { year } = req.query;
+    const { year, academicYear } = req.query;
 
     // Validate input
     if (!studentId || !term) {
@@ -620,12 +630,8 @@ exports.deleteStudentMarks = asyncHandler(async (req, res, next) => {
         };
 
         // Add year to query if provided
-        if (year) {
-            query.year = Number(year);
-        } else {
-            // If no year provided, use current year
-            query.year = new Date().getFullYear();
-        }
+        const recordYear = parseAcademicYear(academicYear) || parseAcademicYear(year);
+        query.year = recordYear || new Date().getFullYear();
 
         // Delete marks
         const result = await Grade.deleteMany(query);
@@ -660,7 +666,7 @@ exports.deleteStudentMarks = asyncHandler(async (req, res, next) => {
 // @access  Private/Teacher
 exports.deleteStudentMarksByQuery = asyncHandler(async (req, res, next) => {
     const { studentId } = req.params;
-    const { term, year } = req.query;
+    const { term, year, academicYear } = req.query;
 
     // Validate input
     if (!studentId || !term) {
@@ -675,11 +681,8 @@ exports.deleteStudentMarksByQuery = asyncHandler(async (req, res, next) => {
         };
 
         // Add year to query if provided, otherwise use current year
-        if (year) {
-            query.year = Number(year);
-        } else {
-            query.year = new Date().getFullYear();
-        }
+        const recordYear = parseAcademicYear(academicYear) || parseAcademicYear(year);
+        query.year = recordYear || new Date().getFullYear();
 
         // Delete marks
         const result = await Grade.deleteMany(query);

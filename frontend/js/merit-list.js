@@ -159,7 +159,22 @@ function downloadMeritListExcel() {
 
 document.addEventListener('DOMContentLoaded', function() {
     const yearInput = document.getElementById('merit-year');
-    if (yearInput && !yearInput.value) yearInput.value = new Date().getFullYear();
+    if (yearInput) {
+        if (typeof populateAcademicYearSelect === 'function') {
+            populateAcademicYearSelect(yearInput);
+        } else {
+            // Fallback: populate current year +/- 2 if the shared helper isn't loaded
+            const currentYear = new Date().getFullYear();
+            yearInput.innerHTML = '';
+            for (let y = currentYear - 2; y <= currentYear + 2; y++) {
+                const option = document.createElement('option');
+                option.value = y;
+                option.textContent = y;
+                yearInput.appendChild(option);
+            }
+            yearInput.value = String(currentYear);
+        }
+    }
 
     const genBtn = document.getElementById('generate-merit-list');
     if (genBtn) genBtn.addEventListener('click', function(e) { e.preventDefault(); generateMeritList(); });

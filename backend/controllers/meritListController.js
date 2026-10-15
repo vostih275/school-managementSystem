@@ -9,14 +9,14 @@ const safeFilePart = (s) => String(s || '').replace(/[^\w]+/g, '_');
  */
 const loadMeritList = async (req, res) => {
     const { className } = req.params;
-    const { term, year } = req.query;
+    const { term, year, academicYear } = req.query;
 
     if (!className) {
         res.status(400).json({ success: false, message: 'className is required' });
         return null;
     }
 
-    const merit = await buildMeritList(className, term || 'Term 1', year);
+    const merit = await buildMeritList(className, term || 'Term 1', academicYear || year);
     if (!merit) {
         res.status(404).json({
             success: false,

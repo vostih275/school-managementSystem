@@ -60,7 +60,8 @@ const orderSubjects = (names) => {
  * @returns {Promise<object|null>} null when the class has no students.
  */
 const buildMeritList = async (className, term, year) => {
-    const recordYear = Number(year) || new Date().getFullYear();
+    const yearMatch = String(year ?? '').match(/\d{4}/);
+    const recordYear = yearMatch ? Number(yearMatch[0]) : new Date().getFullYear();
     const termString = /^term/i.test(String(term)) ? String(term) : `Term ${term}`;
 
     const [students, grades, settings] = await Promise.all([

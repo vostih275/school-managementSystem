@@ -3332,6 +3332,13 @@
                   <option value="Term 3">Term 3</option>
                 </select>
               </div>
+
+              <div class="form-group">
+                <label for="marks-academic-year">Academic Year</label>
+                <select id="marks-academic-year" class="form-control" required>
+                  <option value="">Select Year</option>
+                </select>
+              </div>
             </div>
             
             <!-- Marks Entry Table -->
@@ -3411,6 +3418,12 @@
                   <option value="Term 1">Term 1</option>
                   <option value="Term 2">Term 2</option>
                   <option value="Term 3">Term 3</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="report-year">Academic Year:</label>
+                <select id="report-year" class="form-control" required>
+                  <option value="">Select Year</option>
                 </select>
               </div>
               <div class="form-group" style="align-self: flex-end;">
@@ -3753,8 +3766,10 @@
                 </select>
               </div>
               <div class="form-group">
-                <label for="merit-year">Year:</label>
-                <input type="number" id="merit-year" class="form-control" min="2020" max="2100" style="width: 110px;">
+                <label for="merit-year">Academic Year:</label>
+                <select id="merit-year" class="form-control" required style="width: 110px;">
+                  <option value="">Select Year</option>
+                </select>
               </div>
               <div class="form-group">
                 <button id="generate-merit-list" class="btn btn-primary">
@@ -5132,24 +5147,9 @@
       // Add event listener for class selection
       marksClassSelect.addEventListener('change', handleClassChange);
       
-      // Initialize the year dropdown
-      const yearSelect = document.getElementById('marks-year');
-      if (yearSelect) {
-        const currentYear = new Date().getFullYear();
-        
-        // Clear any existing options
-        yearSelect.innerHTML = '';
-        
-        // Add 5 years in the past and 2 years in the future
-        for (let year = currentYear - 5; year <= currentYear + 2; year++) {
-          const option = document.createElement('option');
-          option.value = year;
-          option.textContent = year;
-          if (year === currentYear) {
-            option.selected = true;
-          }
-          yearSelect.appendChild(option);
-        }
+      // Initialize the academic year dropdown (defaults to the active year from school settings)
+      if (typeof populateAcademicYearSelect === 'function') {
+        populateAcademicYearSelect(document.getElementById('marks-academic-year'));
       }
       
       // Trigger initial load if a class is already selected
@@ -5225,7 +5225,7 @@
             // Collect marks (4 CBC assessments per subject)
             const marks = [];
             const rows = document.querySelectorAll('#marks-entry-body tr');
-            const year = document.getElementById('marks-year')?.value || new Date().getFullYear();
+            const year = document.getElementById('marks-academic-year')?.value || new Date().getFullYear();
 
             rows.forEach(row => {
                 const subjectCell = row.querySelector('td:first-child');
@@ -5254,6 +5254,7 @@
                 studentId: studentId,
                 term: term,
                 year: year,
+                academicYear: year,
                 subjects: marks,
                 teacherRemarks: teacherRemarks
             };
@@ -5272,6 +5273,7 @@
                     studentId: studentId,
                     term: term,
                     year: year,
+                    academicYear: year,
                     subjects: marks,
                     teacherRemarks: teacherRemarks
                 });
@@ -5286,6 +5288,7 @@
                         studentId: studentId,
                         term: term,
                         year: year,
+                        academicYear: year,
                         subjects: marks,
                         teacherRemarks: teacherRemarks
                     })

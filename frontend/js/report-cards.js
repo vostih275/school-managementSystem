@@ -33,6 +33,50 @@ function showAlert(message, type = 'info') {
     }, 5000);
 }
 
+// ---------------------------------------------------------------------------
+// Academic year helpers — shared by report cards, merit list and marks entry
+// ---------------------------------------------------------------------------
+
+// Fetch the active academic year from school settings (e.g. "2026" or "2026-2027")
+async function fetchActiveAcademicYear() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        const res = await fetch(`${apiBase}/settings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return null;
+        const data = await res.json().catch(() => ({}));
+        const match = String(data?.settings?.academicYear || '').match(/\d{4}/);
+        return match ? parseInt(match[0], 10) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Populate a year <select> with a range around the active year and select it
+async function populateAcademicYearSelect(selectEl, range) {
+    if (!selectEl) return;
+    const past = (range && range.past) || 5;
+    const future = (range && range.future) || 2;
+    const activeYear = (await fetchActiveAcademicYear()) || new Date().getFullYear();
+    selectEl.innerHTML = '';
+    for (let y = activeYear - past; y <= activeYear + future; y++) {
+        const option = document.createElement('option');
+        option.value = y;
+        option.textContent = y;
+        selectEl.appendChild(option);
+    }
+    selectEl.value = String(activeYear);
+}
+
+// Read the 4-digit year selected in a dropdown, with a safe fallback
+function getSelectedAcademicYear(elementId) {
+    const el = document.getElementById(elementId);
+    const match = String(el ? el.value : '').match(/\d{4}/);
+    return match ? match[0] : String(new Date().getFullYear());
+}
+
 // Function to load classes for the report card tab
 async function loadClassesForReportCard() {
     try {
@@ -676,7 +720,7 @@ async function generateAllClassReports() {
         showAlert('Please select a class and term', 'error');
         return;
     }
-    const year = new Date().getFullYear();
+    const year = getSelectedAcademicYear('report-year');
     const token = localStorage.getItem('token');
     if (!token) {
         showAlert('You are not authenticated. Please log in again.', 'error');
@@ -1127,7 +1171,7 @@ async function downloadReportCardAsPDF() {
         return;
     }
     const termNumber = String(termRaw).match(/\d+/)?.[0] || '1';
-    const year = new Date().getFullYear();
+    const year = getSelectedAcademicYear('report-year');
     const url = `${apiBase}/cbc/report-card/${encodeURIComponent(studentId)}?term=${termNumber}&academicYear=${year}&download=true&regenerate=true`;
     const safeName = studentName.replace(/[^\w]+/g, '_');
     await downloadFileBlob(url, `ReportCard_${safeName}_Term${termNumber}_${year}.pdf`, document.getElementById('download-report-pdf'));
@@ -1144,7 +1188,7 @@ async function downloadReportCardExcel() {
         showAlert('Please select a student and term before downloading.', 'error');
         return;
     }
-    const year = new Date().getFullYear();
+    const year = getSelectedAcademicYear('report-year');
     const url = `${apiBase}/reports/generate/${encodeURIComponent(studentId)}/${encodeURIComponent(term)}/${year}/excel`;
     const safeName = studentName.replace(/[^\w]+/g, '_');
     await downloadFileBlob(url, `ReportCard_${safeName}_${term.replace(/\s+/g, '')}_${year}.xlsx`, document.getElementById('download-report-excel'));
@@ -1201,7 +1245,7 @@ async function previewReportCard(event) {
             return;
         }
 
-        const year = new Date().getFullYear();
+        const year = getSelectedAcademicYear('report-year');
         const token = localStorage.getItem('token');
         if (!token) {
             showAlert('You are not authenticated. Please log in again.', 'error');
@@ -1407,11 +1451,10 @@ async function deleteReportCard() {
             throw new Error('Not authenticated');
         }
         
-        // Get current academic year
-        const currentYear = new Date().getFullYear();
-        const academicYear = `${currentYear}-${currentYear + 1}`;
-        
-        const url = `${apiBase}/marks/${studentId}/term/${encodeURIComponent(term)}?academicYear=${encodeURIComponent(academicYear)}`;
+        // Use the academic year selected in the report card tab
+        const academicYear = getSelectedAcademicYear('report-year');
+
+        const url = `${apiBase}/marks/${studentId}/term/${encodeURIComponent(term)}?year=${encodeURIComponent(academicYear)}`;
         console.log('Making DELETE request to:', url);
         
         // Call the delete endpoint
@@ -1566,6 +1609,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Populate the Report Card tab academic year select (defaults to active year)
+    populateAcademicYearSelect(document.getElementById('report-year'));
+
     // Add event listener to the Report Card tab class select
     const classSelect = document.getElementById('report-class');
     if (classSelect) {
