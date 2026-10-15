@@ -23,7 +23,7 @@ const getBrowser = async () => {
     let executablePath = null;
     for (const p of chromePaths) {
         try {
-            await fsp.access(p);
+            await fs.access(p);
             executablePath = p;
             break;
         } catch (e) { /* not found */ }
@@ -226,7 +226,7 @@ const buildReportHtml = ({ student, term, academicYear, gradingScale, learningAr
 
     /* ---------- Biodata ---------- */
     .biodata {
-        display: grid; grid-template-columns: repeat(4, 1fr);
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 10px; margin: 16px 0;
     }
     .bio-card {
@@ -321,8 +321,12 @@ const buildReportHtml = ({ student, term, academicYear, gradingScale, learningAr
             <div class="bio-value">${escapeHtml(student.name)}</div>
         </div>
         <div class="bio-card">
-            <div class="bio-label">Student ID</div>
-            <div class="bio-value">${escapeHtml(String(student.id))}</div>
+            <div class="bio-label">Admission No.</div>
+            <div class="bio-value">${escapeHtml(student.admissionNumber || String(student.id))}</div>
+        </div>
+        <div class="bio-card">
+            <div class="bio-label">Assessment No. (UPI)</div>
+            <div class="bio-value">${escapeHtml(student.assessmentNumber || 'N/A')}</div>
         </div>
         <div class="bio-card">
             <div class="bio-label">Class / Grade</div>
@@ -455,4 +459,4 @@ const generateReportPdf = async (reportData, outputPath) => {
     return outputPath;
 };
 
-module.exports = { generateReportPdf, buildReportHtml, closeBrowser };
+module.exports = { generateReportPdf, buildReportHtml, closeBrowser, getBrowser };

@@ -163,7 +163,7 @@ exports.getStudentSummary = async (req, res) => {
         if (term) matchStage.term = parseInt(term, 10);
 
         const [student, assessments, competencyRecords] = await Promise.all([
-            User.findById(studentId).select('name email class profile.class').lean(),
+            User.findById(studentId).select('name email class profile.class admissionNumber assessmentNumber').lean(),
             CBCAssessment.find(matchStage).lean(),
             CBCCoreCompetency.find(matchStage).lean()
         ]);
@@ -269,6 +269,7 @@ exports.getStudentSummary = async (req, res) => {
                     name: student.name,
                     email: student.email,
                     admissionNumber: student.admissionNumber || '',
+                    assessmentNumber: student.assessmentNumber || '',
                     class: student.class || student.profile?.class || ''
                 },
                 filters: {
@@ -326,7 +327,7 @@ exports.buildTermReportData = buildTermReportData = async (studentId, term, acad
     };
 
     const [student, assessments, competencyRecord] = await Promise.all([
-        User.findById(studentId).select('name email class profile.class').lean(),
+        User.findById(studentId).select('name email class profile.class admissionNumber assessmentNumber').lean(),
         CBCAssessment.find(match).lean(),
         CBCCoreCompetency.findOne(match).lean()
     ]);
@@ -420,6 +421,18 @@ exports.buildTermReportData = buildTermReportData = async (studentId, term, acad
             totalStudents = classSize;
             const myIndex = studentRankings.findIndex(r => r.studentId === String(studentId));
             if (myIndex !== -1) classPosition = myIndex + 1;
+
+            console.log('CBC buildTermReportData 8-tier debug:', {
+                studentId: String(student._id),
+                studentClass,
+                classStudentsFound: classStudents.length,
+                studentRankings,
+                classPosition,
+                classSize,
+                totalStudents,
+                totalMarks,
+                totalPoints
+            });
         }
 
         summary = {
@@ -431,18 +444,6 @@ exports.buildTermReportData = buildTermReportData = async (studentId, term, acad
             classSize,
             totalStudents
         };
-
-        console.log('CBC buildTermReportData 8-tier debug:', {
-            studentId: String(student._id),
-            studentClass,
-            classStudentsFound: classStudents.length,
-            studentRankings,
-            classPosition,
-            classSize,
-            totalStudents,
-            totalMarks,
-            totalPoints
-        });
     }
 
     return {
@@ -451,6 +452,7 @@ exports.buildTermReportData = buildTermReportData = async (studentId, term, acad
             name: student.name,
             email: student.email,
             admissionNumber: student.admissionNumber || '',
+            assessmentNumber: student.assessmentNumber || '',
             class: studentClass
         },
         term: parseInt(term, 10),
@@ -471,7 +473,7 @@ const buildTermReportDataFromGrades = async (studentId, term, academicYear) => {
     const year = parseInt(academicYear, 10) || parseInt(String(academicYear).match(/\d{4}/)[0], 10);
 
     const [student, grades] = await Promise.all([
-        User.findById(studentId).select('name email class profile.class').lean(),
+        User.findById(studentId).select('name email class profile.class admissionNumber assessmentNumber').lean(),
         Grade.find({
             student: new mongoose.Types.ObjectId(studentId),
             term: termString,
@@ -584,6 +586,19 @@ const buildTermReportDataFromGrades = async (studentId, term, academicYear) => {
             totalStudents = classSize;
             const myIndex = studentRankings.findIndex(r => r.studentId === String(studentId));
             if (myIndex !== -1) classPosition = myIndex + 1;
+
+            console.log('CBC buildTermReportDataFromGrades 8-tier debug:', {
+                studentId: String(student._id),
+                studentClass,
+                classStudentsFound: classStudents.length,
+                classGradesFound: classGrades.length,
+                studentRankings,
+                classPosition,
+                classSize,
+                totalStudents,
+                totalMarks,
+                totalPoints
+            });
         }
 
         summary = {
@@ -595,19 +610,6 @@ const buildTermReportDataFromGrades = async (studentId, term, academicYear) => {
             classSize,
             totalStudents
         };
-
-        console.log('CBC buildTermReportDataFromGrades 8-tier debug:', {
-            studentId: String(student._id),
-            studentClass,
-            classStudentsFound: classStudents.length,
-            classGradesFound: classGrades.length,
-            studentRankings,
-            classPosition,
-            classSize,
-            totalStudents,
-            totalMarks,
-            totalPoints
-        });
     }
 
     return {
@@ -616,6 +618,7 @@ const buildTermReportDataFromGrades = async (studentId, term, academicYear) => {
             name: student.name,
             email: student.email,
             admissionNumber: student.admissionNumber || '',
+            assessmentNumber: student.assessmentNumber || '',
             class: studentClass
         },
         term,

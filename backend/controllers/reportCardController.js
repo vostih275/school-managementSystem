@@ -368,24 +368,22 @@ function rank(value, allValues) {
     return allValues.filter(v => v > value).length + 1;
 }
 
-// @desc    Generate comprehensive report card data
-// @route   GET /api/reports/generate/:studentId/:term/:year
-// @access  Private
-const generateComprehensiveReport = async (req, res) => {
-    try {
-        const { studentId, term, year } = req.params;
+// Builds the full report-card dataset for one student/term/year.
+// Throws an Error with .status set for expected failure modes (400/404).
+const buildComprehensiveReportData = async (studentId, term, year) => {
         const recordYear = Number(year);
 
         if (!studentId || !term || isNaN(recordYear)) {
-            return res.status(400).json({
-                success: false,
-                message: 'studentId, term, and a valid year are required'
-            });
+            const err = new Error('studentId, term, and a valid year are required');
+            err.status = 400;
+            throw err;
         }
 
         const student = await User.findById(studentId).lean();
         if (!student) {
-            return res.status(404).json({ success: false, message: 'Student not found' });
+            const err = new Error('Student not found');
+            err.status = 404;
+            throw err;
         }
 
         const studentGrades = await Grade.find({
@@ -395,18 +393,16 @@ const generateComprehensiveReport = async (req, res) => {
         }).populate('teacher', 'name').lean();
 
         if (studentGrades.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: `No marks found for this student in ${term}, ${recordYear}. Please enter and save marks first.`
-            });
+            const err = new Error(`No marks found for this student in ${term}, ${recordYear}. Please enter and save marks first.`);
+            err.status = 404;
+            throw err;
         }
 
         const studentClass = studentGrades[0].class || student.class || student.profile?.class || '';
         if (!studentClass) {
-            return res.status(400).json({
-                success: false,
-                message: 'Student class not found'
-            });
+            const err = new Error('Student class not found');
+            err.status = 400;
+            throw err;
         }
 
         // Load school settings and teacher assignments for this class
@@ -565,32 +561,69 @@ const generateComprehensiveReport = async (req, res) => {
             return (a.subject || '').localeCompare(b.subject || '');
         });
 
-        res.status(200).json({
-            success: true,
-            data: {
-                schoolName,
-                schoolContact,
-                classTeacherName,
-                student: {
-                    id: student._id,
-                    name: student.name || 'Unknown Student',
-                    admissionNumber: student.admissionNumber || '',
-                    class: studentClass
-                },
-                term,
-                year: recordYear,
-                termAverage: parseFloat(termAverage.toFixed(2)),
-                classSize,
-                totalStudents: classSize,
-                classPosition,
-                subjects
-            }
-        });
+        return {
+            schoolName,
+            schoolContact,
+            classTeacherName,
+            student: {
+                id: student._id,
+                name: student.name || 'Unknown Student',
+                admissionNumber: student.admissionNumber || '',
+                assessmentNumber: student.assessmentNumber || '',
+                class: studentClass
+            },
+            term,
+            year: recordYear,
+            termAverage: parseFloat(termAverage.toFixed(2)),
+            classSize,
+            totalStudents: classSize,
+            classPosition,
+            subjects
+        };
+};
+
+// @desc    Generate comprehensive report card data
+// @route   GET /api/reports/generate/:studentId/:term/:year
+// @access  Private
+const generateComprehensiveReport = async (req, res) => {
+    try {
+        const { studentId, term, year } = req.params;
+        const data = await buildComprehensiveReportData(studentId, term, year);
+        res.status(200).json({ success: true, data });
     } catch (error) {
         console.error('Error generating comprehensive report:', error);
-        res.status(500).json({
+        res.status(error.status || 500).json({
             success: false,
-            message: 'Server error generating report card',
+            message: error.status ? error.message : 'Server error generating report card',
+            error: error.message
+        });
+    }
+};
+
+// @desc    Download the comprehensive report card as an Excel (XLSX) workbook
+// @route   GET /api/reports/generate/:studentId/:term/:year/excel
+// @access  Private
+const downloadReportCardExcel = async (req, res) => {
+    try {
+        const { studentId, term, year } = req.params;
+        const data = await buildComprehensiveReportData(studentId, term, year);
+        const { buildReportCardWorkbook } = require('../services/reportExportService');
+        const buffer = buildReportCardWorkbook(data);
+
+        const safeName = String(data.student.name || 'student').replace(/[^\w]+/g, '_');
+        const fileName = `ReportCard_${safeName}_${String(term).replace(/\s+/g, '')}_${data.year}.xlsx`;
+
+        res.set({
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition': `attachment; filename="${fileName}"`,
+            'Content-Length': buffer.length
+        });
+        res.send(buffer);
+    } catch (error) {
+        console.error('Error generating report card Excel:', error);
+        res.status(error.status || 500).json({
+            success: false,
+            message: error.status ? error.message : 'Server error generating Excel export',
             error: error.message
         });
     }
@@ -601,5 +634,6 @@ module.exports = {
     getStudentReportCards,
     getReportCard,
     getAllReportCards,
-    generateComprehensiveReport
+    generateComprehensiveReport,
+    downloadReportCardExcel
 };

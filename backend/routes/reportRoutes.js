@@ -1,6 +1,6 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
-const { generateComprehensiveReport } = require('../controllers/reportCardController');
+const { generateComprehensiveReport, downloadReportCardExcel } = require('../controllers/reportCardController');
 
 const router = express.Router();
 
@@ -8,5 +8,10 @@ const router = express.Router();
 // @desc    Generate comprehensive report card data with averages, positions, and improvement
 // @access  Private
 router.get('/generate/:studentId/:term/:year', protect, generateComprehensiveReport);
+
+// @route   GET /api/reports/generate/:studentId/:term/:year/excel
+// @desc    Download the comprehensive report card as an Excel (XLSX) workbook
+// @access  Private
+router.get('/generate/:studentId/:term/:year/excel', protect, downloadReportCardExcel);
 
 module.exports = router;

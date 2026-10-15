@@ -299,6 +299,7 @@ function buildReportCardHtml(reportData) {
         const studentName = student.name || (studentSelect ? studentSelect.options[studentSelect.selectedIndex]?.text : 'N/A') || 'N/A';
         const className = student.class || (classSelect ? classSelect.value : '') || 'N/A';
         const admissionNumber = student.admissionNumber || '';
+        const assessmentNumber = student.assessmentNumber || '';
         const term = payload.term || (termSelect ? termSelect.value : '') || 'N/A';
         const year = payload.year || new Date().getFullYear();
         const termNumber = String(term).replace(/\D/g, '') || term;
@@ -453,6 +454,10 @@ function buildReportCardHtml(reportData) {
                     <span>ADMISSION NO: ${admissionNumber || 'N/A'}</span>
                     <span>TERM: ${term}</span>
                 </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-weight:600;">
+                    <span>ASSESSMENT NO (UPI): ${assessmentNumber || 'N/A'}</span>
+                    <span>YEAR: ${year}</span>
+                </div>
                 <p style="margin:4px 0; font-style:italic; font-size:11px;">Dear Parents/Guardians, This report form shows the ability and progress your child has made in different learning areas. The school welcomes you, should you desire to know more about your child's progress.</p>
             </div>
 
@@ -577,6 +582,7 @@ function updateReportCardPreview(reportData) {
         const studentName = payload.student?.name || '';
         const className = payload.student?.class || '';
         const admissionNumber = payload.student?.admissionNumber || '';
+        const assessmentNumber = payload.student?.assessmentNumber || '';
         const term = payload.term || '';
         const year = payload.year || new Date().getFullYear();
         const classPosition = payload.classPosition !== undefined && payload.classPosition !== null ? Number(payload.classPosition) : null;
@@ -603,6 +609,9 @@ function updateReportCardPreview(reportData) {
 
         const admissionNoEl = document.getElementById('admission-no');
         if (admissionNoEl) admissionNoEl.textContent = admissionNumber || '-';
+
+        const assessmentNoEl = document.getElementById('assessment-no');
+        if (assessmentNoEl) assessmentNoEl.textContent = assessmentNumber || '-';
 
         const termDisplay = document.getElementById('term-display');
         if (termDisplay) termDisplay.textContent = `${term} (${year})`;
@@ -637,6 +646,12 @@ function updateReportCardPreview(reportData) {
 
         const printReportBtn = document.getElementById('print-report-card');
         if (printReportBtn) printReportBtn.style.display = 'inline-block';
+
+        const downloadPdfBtn = document.getElementById('download-report-pdf');
+        if (downloadPdfBtn) downloadPdfBtn.style.display = 'inline-block';
+
+        const downloadExcelBtn = document.getElementById('download-report-excel');
+        if (downloadExcelBtn) downloadExcelBtn.style.display = 'inline-block';
 
         const sendBtn = document.getElementById('send-to-student');
         if (sendBtn) sendBtn.style.display = 'inline-block';
@@ -1056,6 +1071,83 @@ async function _unusedDownloadReportCardAsPDF() {
 // Stub — future feature: email/share report card
 function sendReportCardToStudent() {
     showAlert('Send to student feature is coming soon.', 'info');
+}
+
+// ---------------------------------------------------------------------------
+// Report card downloads (PDF via CBC service, Excel via reports endpoint)
+// ---------------------------------------------------------------------------
+async function downloadFileBlob(url, fallbackName, btn) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showAlert('You are not authenticated. Please log in again.', 'error');
+        return;
+    }
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
+    }
+    try {
+        const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || `Server returned ${response.status}`);
+        }
+        const blob = await response.blob();
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename="?([^";]+)"?/);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = match ? match[1] : fallbackName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        showAlert('Download started.', 'success');
+    } catch (error) {
+        console.error('Download failed:', error);
+        showAlert(`Download failed: ${error.message}`, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
+// Download the current student's report card as a generated PDF
+async function downloadReportCardAsPDF() {
+    const studentSelect = document.getElementById('report-student');
+    const termSelect = document.getElementById('report-term');
+    const studentId = studentSelect ? studentSelect.value : '';
+    const termRaw = termSelect ? termSelect.value : '';
+    const studentName = studentSelect ? (studentSelect.options[studentSelect.selectedIndex]?.text || 'student') : 'student';
+    if (!studentId || !termRaw) {
+        showAlert('Please select a student and term before downloading.', 'error');
+        return;
+    }
+    const termNumber = String(termRaw).match(/\d+/)?.[0] || '1';
+    const year = new Date().getFullYear();
+    const url = `${apiBase}/cbc/report-card/${encodeURIComponent(studentId)}?term=${termNumber}&academicYear=${year}&download=true&regenerate=true`;
+    const safeName = studentName.replace(/[^\w]+/g, '_');
+    await downloadFileBlob(url, `ReportCard_${safeName}_Term${termNumber}_${year}.pdf`, document.getElementById('download-report-pdf'));
+}
+
+// Download the current student's report card as an Excel workbook
+async function downloadReportCardExcel() {
+    const studentSelect = document.getElementById('report-student');
+    const termSelect = document.getElementById('report-term');
+    const studentId = studentSelect ? studentSelect.value : '';
+    const term = termSelect ? termSelect.value : '';
+    const studentName = studentSelect ? (studentSelect.options[studentSelect.selectedIndex]?.text || 'student') : 'student';
+    if (!studentId || !term) {
+        showAlert('Please select a student and term before downloading.', 'error');
+        return;
+    }
+    const year = new Date().getFullYear();
+    const url = `${apiBase}/reports/generate/${encodeURIComponent(studentId)}/${encodeURIComponent(term)}/${year}/excel`;
+    const safeName = studentName.replace(/[^\w]+/g, '_');
+    await downloadFileBlob(url, `ReportCard_${safeName}_${term.replace(/\s+/g, '')}_${year}.xlsx`, document.getElementById('download-report-excel'));
 }
 
 // Function to preview the report card
@@ -1533,6 +1625,22 @@ document.addEventListener('DOMContentLoaded', function() {
         sendBtn.addEventListener('click', function(e) {
             e.preventDefault();
             sendReportCardToStudent();
+        });
+    }
+
+    // Wire report card download buttons (PDF + Excel)
+    const downloadPdfBtn = document.getElementById('download-report-pdf');
+    if (downloadPdfBtn) {
+        downloadPdfBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            downloadReportCardAsPDF();
+        });
+    }
+    const downloadExcelBtn = document.getElementById('download-report-excel');
+    if (downloadExcelBtn) {
+        downloadExcelBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            downloadReportCardExcel();
         });
     }
 
