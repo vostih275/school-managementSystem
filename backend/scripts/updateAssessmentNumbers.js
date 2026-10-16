@@ -276,7 +276,11 @@ async function updateAndClean() {
   process.exit(0);
 }
 
-updateAndClean().catch(err => {
-  console.error('Migration error:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  updateAndClean().catch(err => {
+    console.error('Migration error:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = { studentData };
