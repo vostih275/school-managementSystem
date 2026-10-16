@@ -153,7 +153,12 @@ function downloadMeritListPdf() {
     if (!className) { meritAlert('Please select a class first.', 'error'); return; }
     const url = `${meritApiBase}/merit-list/${encodeURIComponent(className)}/pdf?term=${encodeURIComponent(term)}&year=${encodeURIComponent(year)}`;
     const fileName = `MeritList_${className.replace(/[^\w]+/g, '_')}_${term.replace(/\s+/g, '')}_${year}.pdf`;
-    downloadFileBlob(url, fileName, document.getElementById('merit-download-pdf'));
+    downloadFileBlob(
+        url,
+        fileName,
+        document.getElementById('merit-download-pdf'),
+        () => printElementAsPdf('merit-list-results', 'print-merit-list', `Merit List — ${className}`)
+    );
 }
 
 function downloadMeritListExcel() {

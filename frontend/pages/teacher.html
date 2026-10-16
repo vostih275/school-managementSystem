@@ -3618,6 +3618,12 @@
               opacity: 0.8;
             }
 
+            /* Named page for landscape merit-schedule printing */
+            @page merit-landscape {
+              size: A4 landscape;
+              margin: 8mm;
+            }
+
             @media print {
               body * {
                 visibility: hidden;
@@ -3659,6 +3665,38 @@
                 margin: 0 !important;
               }
               nav, .sidebar, .tab-nav, button, .btn, .alert, .filters, #confirmDeleteModal, .no-print {
+                display: none !important;
+              }
+
+              /* --- PDF fallback print modes --- */
+              /* Merit schedule: print only the merit list, in landscape */
+              body.print-merit-list #report-card-preview,
+              body.print-merit-list #bulk-report-cards,
+              body.print-merit-list .preview-section {
+                display: none !important;
+              }
+              body.print-merit-list #merit-list-tab,
+              body.print-merit-list #merit-list-header {
+                display: block !important;
+              }
+              body.print-merit-list #merit-list-header,
+              body.print-merit-list #merit-list-header *,
+              body.print-merit-list #merit-list-results,
+              body.print-merit-list #merit-list-results * {
+                visibility: visible;
+              }
+              body.print-merit-list #merit-list-results {
+                page: merit-landscape;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 0;
+                box-shadow: none;
+                font-size: 9px;
+              }
+              /* Report card fallback: hide merit-list leftovers if any */
+              body.print-report-card-only #merit-list-tab {
                 display: none !important;
               }
 

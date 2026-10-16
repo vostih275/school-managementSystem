@@ -474,7 +474,7 @@ function buildReportCardHtml(reportData) {
 
                 <!-- Left: School Badge Placeholder -->
                 <div style="flex: 1; text-align: left;">
-                    <img src="/images/logo.png" alt="School Badge" style="max-height: 60px; width: auto;">
+                    <img src="/images/logo.png" alt="School Badge" crossorigin="anonymous" style="max-height: 60px; width: auto;">
                 </div>
 
                 <!-- Center: School Information -->
@@ -1122,7 +1122,29 @@ function sendReportCardToStudent() {
 // ---------------------------------------------------------------------------
 // Report card downloads (PDF via CBC service, Excel via reports endpoint)
 // ---------------------------------------------------------------------------
-async function downloadFileBlob(url, fallbackName, btn) {
+
+// Print the currently rendered element via the browser's native print dialog
+// (user picks "Save as PDF"). Used as a fail-safe when server-side PDF
+// generation fails or times out. `bodyClass` scopes the print CSS so only
+// the target prints (e.g. 'print-merit-list' for the merit schedule).
+function printElementAsPdf(elementId, bodyClass, friendlyName) {
+    const el = document.getElementById(elementId);
+    if (!el || !el.innerHTML.trim()) {
+        showAlert('Please generate the report first — nothing to print yet.', 'error');
+        return;
+    }
+    if (bodyClass) document.body.classList.add(bodyClass);
+    const cleanup = () => {
+        if (bodyClass) document.body.classList.remove(bodyClass);
+        window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    showAlert(`Opening print dialog for ${friendlyName || 'document'} — choose "Save as PDF" to download.`, 'info');
+    setTimeout(() => window.print(), 60);
+    setTimeout(cleanup, 60000); // safety net if afterprint never fires
+}
+
+async function downloadFileBlob(url, fallbackName, btn, onFailureFallback) {
     const token = localStorage.getItem('token');
     if (!token) {
         showAlert('You are not authenticated. Please log in again.', 'error');
@@ -1133,8 +1155,13 @@ async function downloadFileBlob(url, fallbackName, btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
     }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // cold Chromium on Render can be slow
     try {
-        const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            signal: controller.signal
+        });
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
             throw new Error(err.message || `Server returned ${response.status}`);
@@ -1151,9 +1178,15 @@ async function downloadFileBlob(url, fallbackName, btn) {
         setTimeout(() => URL.revokeObjectURL(a.href), 4000);
         showAlert('Download started.', 'success');
     } catch (error) {
+        const timedOut = error.name === 'AbortError';
         console.error('Download failed:', error);
-        showAlert(`Download failed: ${error.message}`, 'error');
+        showAlert(
+            timedOut ? 'PDF generation timed out — using print fallback.' : `Download failed: ${error.message} — using print fallback.`,
+            'warning'
+        );
+        if (typeof onFailureFallback === 'function') onFailureFallback();
     } finally {
+        clearTimeout(timeoutId);
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = originalText;
@@ -1176,7 +1209,12 @@ async function downloadReportCardAsPDF() {
     const year = getSelectedAcademicYear('report-year');
     const url = `${apiBase}/cbc/report-card/${encodeURIComponent(studentId)}?term=${termNumber}&academicYear=${year}&download=true&regenerate=true`;
     const safeName = studentName.replace(/[^\w]+/g, '_');
-    await downloadFileBlob(url, `ReportCard_${safeName}_Term${termNumber}_${year}.pdf`, document.getElementById('download-report-pdf'));
+    await downloadFileBlob(
+        url,
+        `ReportCard_${safeName}_Term${termNumber}_${year}.pdf`,
+        document.getElementById('download-report-pdf'),
+        () => printElementAsPdf('report-card-preview', 'print-report-card-only', `Report Card — ${studentName}`)
+    );
 }
 
 // Download the current student's report card as an Excel workbook
