@@ -287,7 +287,7 @@ const generateMeritListPdf = async (merit) => {
     let page = null;
     try {
         page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+        await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
         return await page.pdf({
             format: 'A4',
             landscape: true,

@@ -55,6 +55,8 @@ const generatePdfFromHtml = async (html, outputPath) => {
     
     const browser = await puppeteer.launch({
         headless: 'new',
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+        timeout: 60000,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -69,7 +71,7 @@ const generatePdfFromHtml = async (html, outputPath) => {
 
     try {
         const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
+        await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
         
         // Generate PDF
         await page.pdf({

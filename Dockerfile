@@ -39,6 +39,18 @@ FROM node:18-slim
 # Create app directory and set working directory
 WORKDIR /app
 
+# Install Chromium and its system dependencies for Puppeteer PDF generation.
+# node:18-slim does not ship the shared libraries Chrome requires (libnss3,
+# libatk, fonts, etc.), so without this the browser fails to launch.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       chromium fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
+
+# Use the system Chromium instead of downloading Puppeteer's bundled Chrome.
+ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 # Install backend dependencies first (leverages Docker layer caching)
 COPY backend/package*.json ./
 RUN npm install --production && npm cache clean --force

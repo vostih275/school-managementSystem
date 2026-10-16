@@ -701,7 +701,11 @@ exports.getReportCard = async (req, res) => {
 
         // Stream the file directly if requested
         if (download === 'true') {
-            return res.download(filePath, fileName);
+            const student = await User.findById(studentId).select('name class').lean();
+            const safeName = student && student.name ? student.name.replace(/[^\w]+/g, '_').replace(/^_+|_+$/g, '') : studentId;
+            const safeClass = student && student.class ? student.class.replace(/[^\w]+/g, '') : '';
+            const downloadName = `Report_Card_${safeName}${safeClass ? `_${safeClass}` : ''}_Term${term}_${safeYear}.pdf`;
+            return res.download(filePath, downloadName);
         }
 
         res.status(200).json({

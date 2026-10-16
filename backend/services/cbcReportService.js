@@ -20,18 +20,21 @@ const getBrowser = async () => {
         'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
         'C:\\Users\\' + process.env.USERNAME + '\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe'
     ];
-    let executablePath = null;
-    for (const p of chromePaths) {
-        try {
-            await fs.access(p);
-            executablePath = p;
-            break;
-        } catch (e) { /* not found */ }
+    let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || null;
+    if (!executablePath) {
+        for (const p of chromePaths) {
+            try {
+                await fs.access(p);
+                executablePath = p;
+                break;
+            } catch (e) { /* not found */ }
+        }
     }
     browserInstance = await puppeteer.launch({
         headless: 'new',
         executablePath,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        timeout: 60000,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
     });
     return browserInstance;
 };
@@ -443,7 +446,7 @@ const generateReportPdf = async (reportData, outputPath) => {
     let page = null;
     try {
         page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+        await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
         await page.pdf({
             path: outputPath,
             format: 'A4',
