@@ -33,6 +33,50 @@ function showAlert(message, type = 'info') {
     }, 5000);
 }
 
+// ---------------------------------------------------------------------------
+// Academic year helpers — shared by report cards, merit list and marks entry
+// ---------------------------------------------------------------------------
+
+// Fetch the active academic year from school settings (e.g. "2026" or "2026-2027")
+async function fetchActiveAcademicYear() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        const res = await fetch(`${apiBase}/settings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return null;
+        const data = await res.json().catch(() => ({}));
+        const match = String(data?.settings?.academicYear || '').match(/\d{4}/);
+        return match ? parseInt(match[0], 10) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Populate a year <select> with a range around the active year and select it
+async function populateAcademicYearSelect(selectEl, range) {
+    if (!selectEl) return;
+    const past = (range && range.past) || 5;
+    const future = (range && range.future) || 2;
+    const activeYear = (await fetchActiveAcademicYear()) || new Date().getFullYear();
+    selectEl.innerHTML = '';
+    for (let y = activeYear - past; y <= activeYear + future; y++) {
+        const option = document.createElement('option');
+        option.value = y;
+        option.textContent = y;
+        selectEl.appendChild(option);
+    }
+    selectEl.value = String(activeYear);
+}
+
+// Read the 4-digit year selected in a dropdown, with a safe fallback
+function getSelectedAcademicYear(elementId) {
+    const el = document.getElementById(elementId);
+    const match = String(el ? el.value : '').match(/\d{4}/);
+    return match ? match[0] : String(new Date().getFullYear());
+}
+
 // Function to load classes for the report card tab
 async function loadClassesForReportCard() {
     try {
@@ -299,6 +343,7 @@ function buildReportCardHtml(reportData) {
         const studentName = student.name || (studentSelect ? studentSelect.options[studentSelect.selectedIndex]?.text : 'N/A') || 'N/A';
         const className = student.class || (classSelect ? classSelect.value : '') || 'N/A';
         const admissionNumber = student.admissionNumber || '';
+        const assessmentNumber = student.assessmentNumber || '';
         const term = payload.term || (termSelect ? termSelect.value : '') || 'N/A';
         const year = payload.year || new Date().getFullYear();
         const termNumber = String(term).replace(/\D/g, '') || term;
@@ -455,6 +500,10 @@ function buildReportCardHtml(reportData) {
                     <span>ADMISSION NO: ${admissionNumber || 'N/A'}</span>
                     <span>TERM: ${term}</span>
                 </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-weight:600;">
+                    <span>ASSESSMENT NO (UPI): ${assessmentNumber || 'N/A'}</span>
+                    <span>YEAR: ${year}</span>
+                </div>
                 <p style="margin:4px 0; font-style:italic; font-size:11px;">Dear Parents/Guardians, This report form shows the ability and progress your child has made in different learning areas. The school welcomes you, should you desire to know more about your child's progress.</p>
             </div>
 
@@ -579,6 +628,7 @@ function updateReportCardPreview(reportData) {
         const studentName = payload.student?.name || '';
         const className = payload.student?.class || '';
         const admissionNumber = payload.student?.admissionNumber || '';
+        const assessmentNumber = payload.student?.assessmentNumber || '';
         const term = payload.term || '';
         const year = payload.year || new Date().getFullYear();
         const classPosition = payload.classPosition !== undefined && payload.classPosition !== null ? Number(payload.classPosition) : null;
@@ -605,6 +655,9 @@ function updateReportCardPreview(reportData) {
 
         const admissionNoEl = document.getElementById('admission-no');
         if (admissionNoEl) admissionNoEl.textContent = admissionNumber || '-';
+
+        const assessmentNoEl = document.getElementById('assessment-no');
+        if (assessmentNoEl) assessmentNoEl.textContent = assessmentNumber || '-';
 
         const termDisplay = document.getElementById('term-display');
         if (termDisplay) termDisplay.textContent = `${term} (${year})`;
@@ -640,6 +693,12 @@ function updateReportCardPreview(reportData) {
         const printReportBtn = document.getElementById('print-report-card');
         if (printReportBtn) printReportBtn.style.display = 'inline-block';
 
+        const downloadPdfBtn = document.getElementById('download-report-pdf');
+        if (downloadPdfBtn) downloadPdfBtn.style.display = 'inline-block';
+
+        const downloadExcelBtn = document.getElementById('download-report-excel');
+        if (downloadExcelBtn) downloadExcelBtn.style.display = 'inline-block';
+
         const sendBtn = document.getElementById('send-to-student');
         if (sendBtn) sendBtn.style.display = 'inline-block';
 
@@ -663,7 +722,7 @@ async function generateAllClassReports() {
         showAlert('Please select a class and term', 'error');
         return;
     }
-    const year = new Date().getFullYear();
+    const year = getSelectedAcademicYear('report-year');
     const token = localStorage.getItem('token');
     if (!token) {
         showAlert('You are not authenticated. Please log in again.', 'error');
@@ -889,7 +948,7 @@ async function deleteMarks() {
 
     const studentId = studentSelect ? studentSelect.value : '';
     const term = termSelect ? termSelect.value : '';
-    const year = new Date().getFullYear();
+    const year = getSelectedAcademicYear('report-year');
 
     if (!studentId || !term) {
         showAlert('Please select a student and term before deleting marks.', 'error');
@@ -1060,6 +1119,83 @@ function sendReportCardToStudent() {
     showAlert('Send to student feature is coming soon.', 'info');
 }
 
+// ---------------------------------------------------------------------------
+// Report card downloads (PDF via CBC service, Excel via reports endpoint)
+// ---------------------------------------------------------------------------
+async function downloadFileBlob(url, fallbackName, btn) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showAlert('You are not authenticated. Please log in again.', 'error');
+        return;
+    }
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
+    }
+    try {
+        const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || `Server returned ${response.status}`);
+        }
+        const blob = await response.blob();
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename="?([^";]+)"?/);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = match ? match[1] : fallbackName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        showAlert('Download started.', 'success');
+    } catch (error) {
+        console.error('Download failed:', error);
+        showAlert(`Download failed: ${error.message}`, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
+// Download the current student's report card as a generated PDF
+async function downloadReportCardAsPDF() {
+    const studentSelect = document.getElementById('report-student');
+    const termSelect = document.getElementById('report-term');
+    const studentId = studentSelect ? studentSelect.value : '';
+    const termRaw = termSelect ? termSelect.value : '';
+    const studentName = studentSelect ? (studentSelect.options[studentSelect.selectedIndex]?.text || 'student') : 'student';
+    if (!studentId || !termRaw) {
+        showAlert('Please select a student and term before downloading.', 'error');
+        return;
+    }
+    const termNumber = String(termRaw).match(/\d+/)?.[0] || '1';
+    const year = getSelectedAcademicYear('report-year');
+    const url = `${apiBase}/cbc/report-card/${encodeURIComponent(studentId)}?term=${termNumber}&academicYear=${year}&download=true&regenerate=true`;
+    const safeName = studentName.replace(/[^\w]+/g, '_');
+    await downloadFileBlob(url, `ReportCard_${safeName}_Term${termNumber}_${year}.pdf`, document.getElementById('download-report-pdf'));
+}
+
+// Download the current student's report card as an Excel workbook
+async function downloadReportCardExcel() {
+    const studentSelect = document.getElementById('report-student');
+    const termSelect = document.getElementById('report-term');
+    const studentId = studentSelect ? studentSelect.value : '';
+    const term = termSelect ? termSelect.value : '';
+    const studentName = studentSelect ? (studentSelect.options[studentSelect.selectedIndex]?.text || 'student') : 'student';
+    if (!studentId || !term) {
+        showAlert('Please select a student and term before downloading.', 'error');
+        return;
+    }
+    const year = getSelectedAcademicYear('report-year');
+    const url = `${apiBase}/reports/generate/${encodeURIComponent(studentId)}/${encodeURIComponent(term)}/${year}/excel`;
+    const safeName = studentName.replace(/[^\w]+/g, '_');
+    await downloadFileBlob(url, `ReportCard_${safeName}_${term.replace(/\s+/g, '')}_${year}.xlsx`, document.getElementById('download-report-excel'));
+}
+
 // Function to preview the report card
 async function previewReportCard(event) {
     console.log('=== previewReportCard called ===');
@@ -1111,7 +1247,7 @@ async function previewReportCard(event) {
             return;
         }
 
-        const year = new Date().getFullYear();
+        const year = getSelectedAcademicYear('report-year');
         const token = localStorage.getItem('token');
         if (!token) {
             showAlert('You are not authenticated. Please log in again.', 'error');
@@ -1317,11 +1453,10 @@ async function deleteReportCard() {
             throw new Error('Not authenticated');
         }
         
-        // Get current academic year
-        const currentYear = new Date().getFullYear();
-        const academicYear = `${currentYear}-${currentYear + 1}`;
-        
-        const url = `${apiBase}/marks/${studentId}/term/${encodeURIComponent(term)}?academicYear=${encodeURIComponent(academicYear)}`;
+        // Use the academic year selected in the report card tab
+        const academicYear = getSelectedAcademicYear('report-year');
+
+        const url = `${apiBase}/marks/${studentId}/term/${encodeURIComponent(term)}?year=${encodeURIComponent(academicYear)}`;
         console.log('Making DELETE request to:', url);
         
         // Call the delete endpoint
@@ -1476,6 +1611,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Populate the Report Card tab academic year select (defaults to active year)
+    populateAcademicYearSelect(document.getElementById('report-year'));
+
     // Add event listener to the Report Card tab class select
     const classSelect = document.getElementById('report-class');
     if (classSelect) {
@@ -1535,6 +1673,22 @@ document.addEventListener('DOMContentLoaded', function() {
         sendBtn.addEventListener('click', function(e) {
             e.preventDefault();
             sendReportCardToStudent();
+        });
+    }
+
+    // Wire report card download buttons (PDF + Excel)
+    const downloadPdfBtn = document.getElementById('download-report-pdf');
+    if (downloadPdfBtn) {
+        downloadPdfBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            downloadReportCardAsPDF();
+        });
+    }
+    const downloadExcelBtn = document.getElementById('download-report-excel');
+    if (downloadExcelBtn) {
+        downloadExcelBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            downloadReportCardExcel();
         });
     }
 
