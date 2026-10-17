@@ -37,6 +37,9 @@
       background: #143a66; color: #fff; border: none; border-radius: 6px; font-size: 14px;
       font-weight: 600; cursor: pointer; }
     .nl-actions .btn:hover { background: #0f2d50; }
+    .nl-actions .nl-print-btn { background: #fff; color: #143a66; border: 2px solid #143a66; }
+    .nl-actions .nl-print-btn:hover { background: #eef2f8; }
+    .nl-actions .btn[disabled] { opacity: .6; cursor: wait; }
 
     @page newsletter-page { size: A4 portrait; margin: 15mm 16mm; }
 
@@ -79,15 +82,18 @@
   const pdfName = (nl) =>
     nl.fileName || `${String(nl.title || 'Newsletter').replace(/[^\w]+/g, '_')}_AIC_Lokichoggio_Girls.pdf`;
 
-  const downloadBtn = (id) => `
+  const actionBtns = () => `
     <div class="nl-actions">
-      <button id="${id}" class="btn newsletter-download-btn">
-        <i class="fas fa-file-pdf"></i> Download Newsletter (PDF)
+      <button class="btn nl-dl-btn">
+        <i class="fas fa-file-pdf"></i> Download PDF
+      </button>
+      <button class="btn nl-print-btn">
+        <i class="fas fa-print"></i> Print Newsletter
       </button>
     </div>`;
 
   const renderNewsletter = (nl) => `
-    ${downloadBtn('print-newsletter-top')}
+    ${actionBtns()}
     <div class="newsletter-doc" id="newsletter-doc">
       <div class="nl-head">
         <div class="nl-school">A.I.C Lokichoggio Girls' Junior School</div>
@@ -100,9 +106,48 @@
         <div class="nl-role">${esc(nl.authorRole)}</div>
       </div>
     </div>
-    ${downloadBtn('print-newsletter-bottom')}`;
+    ${actionBtns()}`;
 
   let currentPdfName = 'Newsletter.pdf';
+
+  const HTML2PDF_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+
+  function loadHtml2Pdf() {
+    if (window.html2pdf) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = HTML2PDF_SRC;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('html2pdf failed to load'));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function downloadNewsletterPdf(btn) {
+    const el = document.getElementById('newsletter-doc');
+    if (!el) return;
+    const label = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF…'; }
+    try {
+      await loadHtml2Pdf();
+      await window.html2pdf()
+        .set({
+          margin: [10, 12, 10, 12],
+          filename: currentPdfName,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', 'h3', '.nl-signoff', '.nl-head'] }
+        })
+        .from(el)
+        .save();
+    } catch (e) {
+      console.error('PDF export failed, falling back to print dialog:', e);
+      printNewsletter();
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = label; }
+    }
+  }
 
   function printNewsletter() {
     document.body.classList.add('print-newsletter');
@@ -138,7 +183,9 @@
       if (!newsletters.length) return;
       currentPdfName = pdfName(newsletters[0]);
       container.innerHTML = renderNewsletter(newsletters[0]);
-      container.querySelectorAll('.newsletter-download-btn').forEach(btn =>
+      container.querySelectorAll('.nl-dl-btn').forEach(btn =>
+        btn.addEventListener('click', (e) => { e.preventDefault(); downloadNewsletterPdf(btn); }));
+      container.querySelectorAll('.nl-print-btn').forEach(btn =>
         btn.addEventListener('click', (e) => { e.preventDefault(); printNewsletter(); }));
     } catch (e) {
       console.error('Newsletter load failed:', e);
