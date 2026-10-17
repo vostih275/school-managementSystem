@@ -17,6 +17,7 @@ const newsletter = {
   audience: 'All Parents / Guardians & Students (Grades 7, 8, & 9)',
   author: 'Akiru Rebecca Lokeun',
   authorRole: 'H.O.I / B.O.M Secretary',
+  fileName: 'Term_3_2026_Newsletter_AIC_Lokichoggio_Girls.pdf',
   createdBy: 'Akiru Rebecca Lokeun (H.O.I / B.O.M Secretary)',
   sections: [
     {

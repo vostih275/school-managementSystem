@@ -39,6 +39,7 @@ const announcementSchema = new mongoose.Schema({
   audience: { type: String, default: '' },
   author: { type: String, default: '' },
   authorRole: { type: String, default: '' },
+  fileName: { type: String, default: '' },
   sections: [newsletterSectionSchema]
 });
 

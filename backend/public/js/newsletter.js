@@ -33,14 +33,29 @@
     .newsletter-doc .nl-author { font-weight: 700; margin-top: 18px; }
     .newsletter-doc .nl-role { color: #4b5563; font-size: 12.5px; }
     .nl-actions { text-align: center; margin: 14px 0 20px; }
+    .nl-actions .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px;
+      background: #143a66; color: #fff; border: none; border-radius: 6px; font-size: 14px;
+      font-weight: 600; cursor: pointer; }
+    .nl-actions .btn:hover { background: #0f2d50; }
+
+    @page newsletter-page { size: A4 portrait; margin: 15mm 16mm; }
 
     @media print {
       body.print-newsletter * { visibility: hidden; }
       body.print-newsletter .newsletter-doc,
       body.print-newsletter .newsletter-doc * { visibility: visible; }
       body.print-newsletter .newsletter-doc { position: absolute; left: 0; top: 0; width: 100%;
-        border: none; box-shadow: none; padding: 0; }
+        border: none; box-shadow: none; padding: 0; page: newsletter-page; }
       body.print-newsletter .nl-actions { display: none !important; }
+      body.print-newsletter .newsletter-doc h3 { page-break-after: avoid; }
+      body.print-newsletter .newsletter-doc p,
+      body.print-newsletter .newsletter-doc li { orphans: 3; widows: 3; }
+      body.print-newsletter .newsletter-doc table,
+      body.print-newsletter .newsletter-doc tr { page-break-inside: avoid; }
+      body.print-newsletter .newsletter-doc .nl-signoff,
+      body.print-newsletter .newsletter-doc .nl-head { page-break-inside: avoid; }
+      body.print-newsletter .newsletter-doc th { -webkit-print-color-adjust: exact;
+        print-color-adjust: exact; }
     }
   `;
   document.head.appendChild(style);
@@ -61,7 +76,18 @@
     return `${s.heading ? `<h3>${esc(s.heading)}</h3>` : ''}${paras}${list}${renderTable(s.table)}${s.note ? `<div class="nl-note">${esc(s.note)}</div>` : ''}`;
   };
 
+  const pdfName = (nl) =>
+    nl.fileName || `${String(nl.title || 'Newsletter').replace(/[^\w]+/g, '_')}_AIC_Lokichoggio_Girls.pdf`;
+
+  const downloadBtn = (id) => `
+    <div class="nl-actions">
+      <button id="${id}" class="btn newsletter-download-btn">
+        <i class="fas fa-file-pdf"></i> Download Newsletter (PDF)
+      </button>
+    </div>`;
+
   const renderNewsletter = (nl) => `
+    ${downloadBtn('print-newsletter-top')}
     <div class="newsletter-doc" id="newsletter-doc">
       <div class="nl-head">
         <div class="nl-school">A.I.C Lokichoggio Girls' Junior School</div>
@@ -74,16 +100,18 @@
         <div class="nl-role">${esc(nl.authorRole)}</div>
       </div>
     </div>
-    <div class="nl-actions">
-      <button id="print-newsletter" class="btn btn-primary" style="padding: 10px 22px; cursor: pointer;">
-        <i class="fas fa-print"></i> Print / Download Newsletter
-      </button>
-    </div>`;
+    ${downloadBtn('print-newsletter-bottom')}`;
+
+  let currentPdfName = 'Newsletter.pdf';
 
   function printNewsletter() {
     document.body.classList.add('print-newsletter');
+    // Temporarily set document.title so 'Save as PDF' suggests the clean file name
+    const originalTitle = document.title;
+    document.title = currentPdfName.replace(/\.pdf$/i, '');
     const cleanup = () => {
       document.body.classList.remove('print-newsletter');
+      document.title = originalTitle;
       window.removeEventListener('afterprint', cleanup);
     };
     window.addEventListener('afterprint', cleanup);
@@ -108,9 +136,10 @@
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
       if (!newsletters.length) return;
+      currentPdfName = pdfName(newsletters[0]);
       container.innerHTML = renderNewsletter(newsletters[0]);
-      const btn = document.getElementById('print-newsletter');
-      if (btn) btn.addEventListener('click', (e) => { e.preventDefault(); printNewsletter(); });
+      container.querySelectorAll('.newsletter-download-btn').forEach(btn =>
+        btn.addEventListener('click', (e) => { e.preventDefault(); printNewsletter(); }));
     } catch (e) {
       console.error('Newsletter load failed:', e);
     }
